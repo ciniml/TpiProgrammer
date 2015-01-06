@@ -326,33 +326,70 @@ namespace TpiProgrammer.Model
             return parity & 1;
         }
 
+        private async Task WriteBreak()
+        {
+            var command = new MpsseCommand();
+            var data = new byte[] { 0x00, 0x80 };
+            command.WriteDataBytes(true, true, data, 0, data.Length);
+            await this.ExecuteCommand(command);
+        }
         private async Task WriteFrame(byte data)
         {
             var command = new MpsseCommand();
             var parity = CalculateEvenParity(data, 0);
             
-            var firstByte = (byte) ((data << 1) | 0);       // START + DATA[0...6]
-            var secondByte = (byte) ((data >> 7) | ((parity & 1) << 1) | 0x0c);   // DATA7 + PARITY + SP1 + SP2
-            command.WriteDataBits(true, true, firstByte, 8);
-            command.WriteDataBits(true, true, secondByte, 4);
+            var firstByte = (byte) ((data << 2) | 1);       // IDLE + START + DATA[0...5]
+            var secondByte = (byte) ((data >> 6) | ((parity & 1) << 2) | 0x18);   // DATA6 + DATA7 + PARITY + SP1 + SP2
+            command
+                .WriteDataBits(true, true, firstByte, 8)
+                .WriteDataBits(true, true, secondByte, 5);
 
             await this.ExecuteCommand(command);
         }
 
         private async Task<byte> ReadFrame()
         {
+            // Maximum guard time (128 bit) + 1 Frame (12bit) = 140 bits must be shifted out
+            // to ensure got a frame.
             var command = new MpsseCommand();
-            command.ExchangeDataBits(true, false, true, 0, 8);
-            command.ExchangeDataBits(true, false, true, 0, 4);
+            var data = new byte[19];
+            for(int i = 0; i < data.Length; i++)
+            {
+                data[i] = 0xff;
+            }
+            command.ExchangeDataBytes(true, true, true, data, 0, data.Length);
 
             var response = await this.ExecuteCommand(command);
-            if ((response[0] & 0x01) != 0 || ((response[1] & 0x0c) != 0x0c))
+            // Search head of a frame.
+            int headIndex = response.Length;
+            for(int i = 0; i < response.Length; i++)
             {
-                // Frame error
+                if (response[i] != 0xff)
+                {
+                    headIndex = i;
+                    break;
+                }
+            }
+            if( headIndex >= response.Length - 1)
+            {
+                // No frames were found in valid range.
+                throw new Exception("No frames were found.");
+            }
+            headIndex = headIndex < 1 ? 0 : headIndex - 1;
+
+            uint frame = BitConverter.ToUInt32(response, headIndex);
+            // Find a start bit.
+            for (int i = 0; i < 32 - 12 && (frame & 1) != 0; i++, frame >>= 1) ;    // Search a start bit from LSB to (32 - 12) bit. 
+            // Check frame integrity.
+            if( (frame & 0x400u) == 0 || (frame & 0x800u) == 0)
+            {
+                // Bad stop bits.
                 throw new Exception("Frame error");
             }
-            var responseData = (response[0] >> 1) | ((response[1] & 0x80) << 7);
-            var responseParity = CalculateEvenParity(responseData, (response[1] >> 1) & 1);
+            var responseData = (int)((frame >> 1) & 0xffu);
+            var parity = (int)((frame >> 9) & 1u);
+
+            var responseParity = CalculateEvenParity(responseData, parity);
             if (responseParity != 0)
             {
                 // Parity error
@@ -385,6 +422,27 @@ namespace TpiProgrammer.Model
             await this.WriteFrame(0x69);
             await this.WriteFrame((byte)(pointer >> 8));
         }
+
+        private async Task SerialOutToIoSpace(int address, byte value)
+        {
+            if (address < 0 || 0x3f < address) throw new ArgumentOutOfRangeException("address");
+            var command = 0x90 | ((address << 1) & 0x60) | (address & 0x0f);
+            await this.WriteFrame((byte)command);
+            await this.WriteFrame(value);
+        }
+
+        private async Task SerialKeySignaling()
+        {
+            var key = new byte[] { 0xff, 0x88, 0xd8, 0xcd, 0x45, 0xab, 0x89, 0x12 };
+            await this.WriteFrame(0xe0);    // SKEY
+            foreach(var value in key)
+            {
+                await this.WriteFrame(value);
+            }
+        }
+        private const int NvmCsr = 0x32;
+        private const int NvmCmd = 0x33;
+
         public async Task<DeviceSignature> ConnectToDeviceAsync()
         {
             // Set clock rate to 1[MHz]
@@ -414,6 +472,9 @@ namespace TpiProgrammer.Model
                 command.WriteDataBytes(true, true, new byte[] {0xff, 0xff}, 0, 2);
                 await this.ExecuteCommand(command);
             }
+            // Send a BREAK character to ensure the interface is not in error state.
+            await this.WriteBreak();
+
             // Now, the device should accept commands from the programmer.
             // We must identify what the interface is by reading TPIIR control register (0x0f) with SLDCS instruction.
             {
@@ -424,9 +485,19 @@ namespace TpiProgrammer.Model
                     throw new Exception("Invalid interface ID");
                 }
             }
+            // Set the guard time as short as possible.
+            {
+                await this.WriteFrame(0xc0 | 0x02); // SSTCS TPIPCR, 7
+                await this.WriteFrame(7);           // /
+            }
+            // Send KEY to enable NVM programming.
+            await this.SerialKeySignaling();
+
             // Then we must identify what the device is by reading device signature bytes which is located in 0x3FC0..0x3FC2
             {
+                await this.SerialOutToIoSpace(NvmCmd, 0x00);   
                 await this.StorePointerRegister(0x3fc0);
+
                 var signature = new DeviceSignature();
                 signature.ManufacturerId = await this.LoadDataIndirect(true);
                 signature.DeviceId1 = await this.LoadDataIndirect(true);
