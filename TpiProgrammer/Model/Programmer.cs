@@ -50,6 +50,8 @@ namespace TpiProgrammer.Model
             progress = progress ?? new NullProgrammingProgress();
             cancellationToken = cancellationToken ?? CancellationToken.None;
 
+            await this.comm.ChipErase(cancellationToken);
+
             int count = 0;
             float numberOfBytes = image.Count;
             foreach (var item in image)
@@ -66,7 +68,7 @@ namespace TpiProgrammer.Model
                 var lowByte = item.Value;
                 var highByte = image[item.Key + 1];
 
-                await this.comm.WordWrite((ushort)item.Key, lowByte, highByte, cancellationToken);
+                await this.comm.WordWrite((ushort)(item.Key + 0x4000), lowByte, highByte, cancellationToken);
 
                 // Report progress.
                 progress.Report(new ProgrammingProgressInfo(count / numberOfBytes));

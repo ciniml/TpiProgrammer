@@ -58,7 +58,7 @@ namespace TpiProgrammer.ViewModel
             programmerIsOpened.Connect();
 
             var isConnectedObservable = this.CurrentProgrammer
-                .Select(programmer => programmer.ObserveProperty(self => self.IsConnected))
+                .Select(programmer => programmer == null ? Observable.Return(false) : programmer.ObserveProperty(self => self.IsConnected))
                 .Switch();
             this.FileToProgram = new ReactiveProperty<string>();
 
@@ -66,12 +66,16 @@ namespace TpiProgrammer.ViewModel
                 .CombineLatest(isConnectedObservable, this.FileToProgram,
                     (isConnected, fileToProgram) => isConnected && !String.IsNullOrWhiteSpace(fileToProgram))
                 .ToReactiveCommand();
-            this.ProgramToDeviceCommand.Subscribe(_ =>
-            {
-                var programmer = new Programmer(this.CurrentProgrammer.Value);
-                // TODO: ProgramAsync
-            })
-            .AddTo(this.CompositeDisposable);
+            this.ProgramToDeviceCommand
+                .Select(_ => this.FileToProgram.Value)
+                .Select(fileToProgram => Observable.FromAsync( async __ =>
+                    {
+                        var programmer = new Programmer(this.CurrentProgrammer.Value);
+                        await programmer.ProgramImageAsync(fileToProgram, null, null);
+                    }))
+                .Switch()
+                .Subscribe()
+                .AddTo(this.CompositeDisposable);
         }
     }
 }

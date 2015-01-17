@@ -42,6 +42,16 @@
                 <Run Text="{Binding Path=TargetDeviceSignature.Value.DeviceId2, StringFormat={}{0:X02}}"/>
             </TextBlock>
         </Grid>
-        <Label Content="Main"/>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBox Grid.Column="0" VerticalAlignment="Top" Text="{Binding FileToProgram.Value}"/>
+            <Button Grid.Column="1" VerticalAlignment="Top" Command="{Binding ProgramToDeviceCommand}">Program</Button>
+        </Grid>
     </DockPanel>
 </Window>
