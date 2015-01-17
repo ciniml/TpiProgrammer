@@ -90,6 +90,9 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Model\Image.cs" />
+    <Compile Include="Model\Programmer.cs" />
+    <Compile Include="Model\SparseImage.cs" />
     <Compile Include="ViewModel\MainWindowViewModel.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
@@ -105,7 +108,7 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Model\Programmer.cs" />
+    <Compile Include="Model\TpiCommunication.cs" />
     <Compile Include="Properties\Annotations.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>

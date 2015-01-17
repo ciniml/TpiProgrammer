@@ -8,7 +8,7 @@
     </Window.DataContext>
     <DockPanel>
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
-            <Label Content="Programmers:"/>
+            <Label Content="TpiCommunications:"/>
             <ComboBox ItemsSource="{Binding Programmers}" 
                       SelectedItem="{Binding SelectedProgrammer.Value}"
                       MinWidth="200">
@@ -32,12 +32,15 @@
                 <ColumnDefinition Width="auto"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" Grid.Row="0" Text="Programmer:"/>
+            <TextBlock Grid.Column="0" Grid.Row="0" Text="TpiCommunication:"/>
             <TextBlock Grid.Column="1" Grid.Row="0"  Grid.ColumnSpan="2" Text="{Binding CurrentProgrammer.Value.Description}"/>
             <TextBlock Grid.Column="0" Grid.Row="1" Text="Device:"/>
             <Button Grid.Column="1" Grid.Row="1" Content="Connect" Command="{Binding ConnectToDeviceCommand}"/>
-            <TextBlock Grid.Column="2" Grid.Row="1" Text="{Binding CurrentProgrammer.Value.Description}"/>
-
+            <TextBlock Grid.Column="2" Grid.Row="1">
+                <Run Text="{Binding Path=TargetDeviceSignature.Value.ManufacturerId, StringFormat={}{0:X02}}"/>
+                <Run Text="{Binding Path=TargetDeviceSignature.Value.DeviceId1, StringFormat={}{0:X02}}"/>
+                <Run Text="{Binding Path=TargetDeviceSignature.Value.DeviceId2, StringFormat={}{0:X02}}"/>
+            </TextBlock>
         </Grid>
         <Label Content="Main"/>
     </DockPanel>
