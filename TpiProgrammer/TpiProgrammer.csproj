@@ -91,6 +91,7 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Model\Image.cs" />
+    <Compile Include="Model\ObservableProgress.cs" />
     <Compile Include="Model\Programmer.cs" />
     <Compile Include="Model\SparseImage.cs" />
     <Compile Include="ViewModel\MainWindowViewModel.cs" />

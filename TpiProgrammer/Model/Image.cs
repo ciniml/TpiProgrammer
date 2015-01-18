@@ -18,6 +18,7 @@ namespace TpiProgrammer.Model
         /// ストリームからイメージを読み込む．
         /// </summary>
         /// <param name="stream">読み取るストリーム</param>
+        /// <param name="cancellationToken">キャンセルトークン</param>
         /// <returns>読み込んだイメージ</returns>
         public static async Task<SparseImage<byte>> LoadAsync(Stream stream, CancellationToken cancellationToken)
         {
@@ -30,6 +31,12 @@ namespace TpiProgrammer.Model
                 throw new NotSupportedException("Unknown format.");
         }
 
+        /// <summary>
+        /// ストリームからIntel HEX形式のイメージを読み込む
+        /// </summary>
+        /// <param name="stream">読み取るストリーム</param>
+        /// <param name="cancellationToken">キャンセルトークン</param>
+        /// <returns></returns>
         public static async Task<SparseImage<byte>> LoadIntelAsync(Stream stream, CancellationToken cancellationToken)
         {
             var streamReader = new StreamReader(stream);
@@ -97,6 +104,11 @@ namespace TpiProgrammer.Model
             }
         }
 
+        /// <summary>
+        /// 指定した行のチェックサムを計算する。
+        /// </summary>
+        /// <param name="data">行の文字列</param>
+        /// <returns></returns>
         private static int CalculateChecksum(string data)
         {
             var sum = 0;
