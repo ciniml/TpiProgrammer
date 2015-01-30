@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<DeviceInformations xmlns="http://fugafuga.org/schemas/DeviceInformation">
+  <DeviceInformation Name="ATtiny4" Signature="1e 8f 0a">
+    <FlashSection Address="0x4000" Size="512"/>
+    <ConfigurationSectionRef Name="tiny10ConfigurationSection"/>
+  </DeviceInformation>
+  <DeviceInformation Name="ATtiny5" Signature="1e 8f 09">
+    <FlashSection Address="0x4000" Size="512"/>
+    <ConfigurationSectionRef Name="tiny10ConfigurationSection"/>
+  </DeviceInformation>
+  <DeviceInformation Name="ATtiny9" Signature="1e 90 08">
+    <FlashSection Address="0x4000" Size="1024"/>
+    <ConfigurationSectionRef Name="tiny10ConfigurationSection"/>
+  </DeviceInformation>
+  <DeviceInformation Name="ATtiny10" Signature="1e 90 03">
+    <FlashSection Address="0x4000" Size="1024"/>
+    <ConfigurationSectionRef Name="tiny10ConfigurationSection"/>
+  </DeviceInformation>
+  
+  <ConfigurationSection Name="tiny10ConfigurationSection">
+    <ConfigurationByte Index="0">
+      <ConfigurationBit Bit="0" Name="RSTDISBL" Description="External Reset disable" IsLocked="true" Default="1"/>
+      <ConfigurationBit Bit="1" Name="WDTON" Description="Watchdog Timer always on" IsLocked="false" Default="1"/>
+      <ConfigurationBit Bit="2" Name="CKOUT" Description="System Clock Output" IsLocked="false" Default="1"/>
+    </ConfigurationByte>
+  </ConfigurationSection>
+</DeviceInformations>

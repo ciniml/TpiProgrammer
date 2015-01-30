@@ -23,6 +23,14 @@ namespace TpiProgrammer
         public MainWindow()
         {
             InitializeComponent();
+
+            this.CaptionPanel.MouseDown += (sender, e) =>
+            {
+                if (e.LeftButton == MouseButtonState.Pressed)
+                {
+                    this.DragMove();
+                }
+            };
         }
     }
 }

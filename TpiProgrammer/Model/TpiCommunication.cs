@@ -110,8 +110,8 @@ namespace TpiProgrammer.Model
                 var currentDeviceKeys = devices.Keys;
                 var newDeviceMap = newDeviceList.ToDictionary(x => x.LocId);
                 var unchangedDeviceKeys = currentDeviceKeys.Intersect(newDeviceMap.Keys).ToArray();
-                var addedDeviceKeys = newDeviceMap.Keys.Except(unchangedDeviceKeys);
-                var removedDeviceKeys = currentDeviceKeys.Except(unchangedDeviceKeys);
+                var addedDeviceKeys = newDeviceMap.Keys.Except(unchangedDeviceKeys).ToList();
+                var removedDeviceKeys = currentDeviceKeys.Except(unchangedDeviceKeys).ToList();
 
                 foreach (var removedDeviceKey in removedDeviceKeys)
                 {
@@ -498,18 +498,18 @@ private class TpiCommandSequence
             this.ftdi.Purge(FTDI.FT_PURGE.FT_PURGE_RX | FTDI.FT_PURGE.FT_PURGE_TX).Check();
         }
 
-        private async Task<byte> LoadDataIndirectAsync(bool postIncrement)
+        public async Task<byte> LoadDataIndirectAsync(bool postIncrement)
         {
             await this.WriteFrameAsync((byte) (postIncrement ? 0x24 : 0x20));
             return await this.ReadFrameAsync();
         }
-        private async Task StoreDataIndirectAsync(byte value, bool postIncrement)
+        public async Task StoreDataIndirectAsync(byte value, bool postIncrement)
         {
             await this.WriteFrameAsync((byte)(postIncrement ? 0x64 : 0x60));
             await this.WriteFrameAsync(value);
         }
 
-        private async Task StorePointerRegisterAsync(ushort pointer)
+        public async Task StorePointerRegisterAsync(ushort pointer)
         {
             await this.WriteFrameAsync(0x68);
             await this.WriteFrameAsync((byte)(pointer & 0xff));
@@ -615,6 +615,17 @@ private class TpiCommandSequence
             await this.StoreDataIndirectAsync(lowByte, true);
             await this.StoreDataIndirectAsync(highByte, true);
             await this.WaitWhileNvmIsBusyAsync(cancellationToken);
+        }
+
+        public async Task ReadDataAsync(ushort address, byte[] buffer, int offset, ushort count, CancellationToken? cancellationToken = null)
+        {
+            cancellationToken = cancellationToken ?? CancellationToken.None;
+            
+            await this.StorePointerRegisterAsync(address);
+            for (var i = 0; i < count; i++)
+            {
+                buffer[offset + i] = await this.LoadDataIndirectAsync(true);
+            }
         }
 
         public async Task<DeviceSignature> ConnectToDeviceAsync()

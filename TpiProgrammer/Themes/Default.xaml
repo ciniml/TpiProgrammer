@@ -1,0 +1,26 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Color x:Key="BackgroundColorKey">White</Color>
+    <SolidColorBrush x:Key="BackgroundColorBrushKey" Color="{StaticResource BackgroundColorKey}"/>
+
+    <Color x:Key="ForegroundColorKey">Black</Color>
+    <SolidColorBrush x:Key="ForegroundColorBrushKey" Color="{StaticResource ForegroundColorKey}"/>
+    
+    <Color x:Key="SelectedItemBackgroundColorKey">LightSkyBlue</Color>
+    <SolidColorBrush x:Key="SelectedItemBackgroundColorBrushKey" Color="{StaticResource SelectedItemBackgroundColorKey}"/>
+    
+    <Color x:Key="SelectedItemBorderColorKey">DeepSkyBlue</Color>
+    <SolidColorBrush x:Key="SelectedItemBorderColorBrushKey" Color="{StaticResource SelectedItemBorderColorKey}"/>
+    
+    <Color x:Key="HoverItemBackgroundColorKey">LightGray</Color>
+    <SolidColorBrush x:Key="HoverItemBackgroundColorBrushKey" Color="{StaticResource HoverItemBackgroundColorKey}"/>
+
+    <Color x:Key="HoverItemBorderColorKey">DimGray</Color>
+    <SolidColorBrush x:Key="HoverItemBorderColorBrushKey" Color="{StaticResource HoverItemBorderColorKey}"/>
+
+    <Color x:Key="WindowBorderColorKey">DimGray</Color>
+    <SolidColorBrush x:Key="WindowBorderColorBrush" Color="{StaticResource WindowBorderColorKey}"/>
+    
+    <Color x:Key="BusyWindowBorderColorKey">DeepPink</Color>
+    <SolidColorBrush x:Key="BusyWindowBorderColorBrushKey" Color="{StaticResource BusyWindowBorderColorKey}"/>
+</ResourceDictionary>

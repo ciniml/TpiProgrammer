@@ -4,108 +4,230 @@
         xmlns:viewModel="clr-namespace:TpiProgrammer.ViewModel"
         xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
         xmlns:l="http://schemas.livet-mvvm.net/2011/wpf"
-        Title="TPI Programmer" Height="350" Width="525">
+        Title="TPI Programmer" Height="160" Width="525">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Themes/Default.xaml"/>
+                <ResourceDictionary>
+                    <Style x:Key="CaptionButtonStyle" TargetType="{x:Type Button}">
+                        <Setter Property="OverridesDefaultStyle" Value="True"/>
+                        <Setter Property="FontFamily" Value="Marlett"/>
+                        <Setter Property="IsTabStop" Value="False"/>
+                        <Setter Property="WindowChrome.IsHitTestVisibleInChrome" Value="True"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border BorderThickness="1"
+                                            BorderBrush="Transparent"
+                                            Margin="1"
+                                            Padding="3">
+                                        <TextBlock Text="{TemplateBinding Content}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="{x:Type TextBlock}">
+                                                    <Setter Property="Foreground" Value="Black"/>
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsEnabled" Value="False">
+                                                            <Setter Property="Foreground" Value="LightGray"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <Border.Style>
+                                            <Style TargetType="{x:Type Border}">
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background" Value="LightSkyBlue"/>
+                                                        <Setter Property="BorderBrush" Value="MediumPurple"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                    <Style x:Key="CaptionTextStyle" TargetType="{x:Type TextBlock}">
+                        <Setter Property="Margin" Value="5,0"/>
+                        <Setter Property="Padding" Value="0"/>
+                        <Setter Property="FontSize" Value="{x:Static SystemFonts.CaptionFontSize}"/>
+                    </Style>
+                </ResourceDictionary>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="{x:Static SystemParameters.CaptionHeight}"
+                      ResizeBorderThickness="{x:Static SystemParameters.WindowResizeBorderThickness}"/>
+    </WindowChrome.WindowChrome>
     <Window.DataContext>
         <viewModel:MainWindowViewModel/>
     </Window.DataContext>
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-        <StackPanel Grid.Row="0" Orientation="Horizontal">
-            <Label Content="Programmers:"/>
-            <ComboBox ItemsSource="{Binding Programmers}" 
-                      SelectedItem="{Binding SelectedProgrammer.Value}"
-                      MinWidth="200">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding Description}"/>
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
-            <Button Command="{Binding OpenSelectedProgrammerCommand}" Content="Open"
-                    Margin="4,2"/>
+    <Border 
+        BorderThickness="1">
+        <Border.Style>
+            <Style TargetType="Border">
+                <Setter Property="BorderBrush" Value="{StaticResource BusyWindowBorderColorBrushKey}"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding ProgrammerOperation.Value}" Value="None">
+                        <Setter Property="BorderBrush" Value="{StaticResource WindowBorderColorBrush}"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Border.Style>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="32"/>
+                <RowDefinition Height="32"/>
+                <RowDefinition Height="48"/>
+                <RowDefinition Height="24"/>
+                <RowDefinition Height="24"/>
+            </Grid.RowDefinitions>
+            <DockPanel 
+                Grid.Row="0" Grid.Column="0"
+                x:Name="CaptionPanel"       
+                Margin="1"
+                VerticalAlignment="Top"
+                WindowChrome.IsHitTestVisibleInChrome="True" >
+                <Button DockPanel.Dock="Right" Content="r" Style="{DynamicResource CaptionButtonStyle}" IsEnabled="{Binding CanCloseWindow.Value}">
+                    <i:Interaction.Triggers>
+                        <i:EventTrigger EventName="Click">
+                            <l:WindowInteractionMessageAction>
+                                <l:DirectInteractionMessage>
+                                    <l:WindowActionMessage Action="Close"/>
+                                </l:DirectInteractionMessage>
+                            </l:WindowInteractionMessageAction>
+                        </i:EventTrigger>
+                    </i:Interaction.Triggers>
+                </Button>
+                <Button DockPanel.Dock="Right" Content="0" Style="{DynamicResource CaptionButtonStyle}">
+                    <i:Interaction.Triggers>
+                        <i:EventTrigger EventName="Click">
+                            <l:WindowInteractionMessageAction>
+                                <l:DirectInteractionMessage>
+                                    <l:WindowActionMessage Action="Minimize"/>
+                                </l:DirectInteractionMessage>
+                            </l:WindowInteractionMessageAction>
+                        </i:EventTrigger>
+                    </i:Interaction.Triggers>
+                </Button>
+                <TextBlock Text="{Binding Title, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Window}}}" Style="{DynamicResource CaptionTextStyle}"/>
+            </DockPanel>
             
-        </StackPanel>
-        <Grid Grid.Row="1">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="auto"/>
-                <RowDefinition Height="auto"/>
-            </Grid.RowDefinitions>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="auto"/>
-                <ColumnDefinition Width="auto"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" Grid.Row="0" Text="Selected Programmer:"/>
-            <TextBlock Grid.Column="1" Grid.Row="0"  Grid.ColumnSpan="2" Text="{Binding CurrentProgrammer.Value.Description}"/>
-            <TextBlock Grid.Column="0" Grid.Row="1" Text="Device:"/>
-            <Button Grid.Column="1" Grid.Row="1" Content="Connect" Command="{Binding ConnectToDeviceCommand}"/>
-            <TextBlock Grid.Column="2" Grid.Row="1" Margin="6,0">
-                <Run Text="{Binding Path=TargetDeviceSignature.Value.ManufacturerId, StringFormat={}{0:X02}}"/>
-                <Run Text="-"/>
-                <Run Text="{Binding Path=TargetDeviceSignature.Value.DeviceId1, StringFormat={}{0:X02}}"/>
-                <Run Text="-"/>
-                <Run Text="{Binding Path=TargetDeviceSignature.Value.DeviceId2, StringFormat={}{0:X02}}"/>
-            </TextBlock>
-        </Grid>
-        <Grid Grid.Row="2">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-            <TextBox Grid.Column="0" VerticalAlignment="Top" Text="{Binding FileToProgram.Value}"/>
-            <Button Grid.Column="1" VerticalAlignment="Top" Content="_Browse">
-                <i:Interaction.Triggers>
-                    <i:EventTrigger EventName="Click">
-                        <l:OpenFileDialogInteractionMessageAction>
-                            <l:DirectInteractionMessage CallbackCommand="{Binding OpenImageCommand}">
-                                <l:OpeningFileSelectionMessage Filter="Intel HEX Image(*.hex)|*.hex|All files|*.*" Title="Open Image File"/>
-                            </l:DirectInteractionMessage>
-                        </l:OpenFileDialogInteractionMessageAction>
-                    </i:EventTrigger>
-                </i:Interaction.Triggers>
-            </Button>
-            <Button Grid.Column="2" VerticalAlignment="Top" Command="{Binding ProgramToDeviceCommand}">_Program</Button>
-        </Grid>
-        
-        <StatusBar Grid.Row="3">
-            <StatusBarItem>
-                <Label>
-                    <Label.Style>
-                        <Style TargetType="{x:Type Label}">
-                            <Setter Property="Content" Value=""/>
+            <StackPanel Grid.Row="1" Orientation="Horizontal">
+                <Label Content="ProgrammingDevices:"/>
+                <ComboBox ItemsSource="{Binding ProgrammingDevices}" 
+                    SelectedItem="{Binding SelectedProgrammingDevice.Value}"
+                    MinWidth="200">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Description}"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                <Button Command="{Binding OpenSelectedProgrammerCommand}" Content="Open"
+                Margin="4,2"/>
+
+            </StackPanel>
+            <Grid Grid.Row="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="auto"/>
+                    <RowDefinition Height="auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="auto"/>
+                    <ColumnDefinition Width="auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Grid.Row="0" Text="Selected Programmer:"/>
+                <TextBlock Grid.Column="1" Grid.Row="0" Text="{Binding CurrentProgrammer.Value.Description}"/>
+                <TextBlock Grid.Column="0" Grid.Row="1" Text="Device:"/>
+                <TextBlock Grid.Column="1" Grid.Row="1" Margin="6,0" Text="{Binding TargetDevice.Value.Name}"/>
+                <Button Grid.Column="2" Grid.Row="1"
+                        Command="{Binding ToggleConnectionCommand}">
+                    <Button.Style>
+                        <Style TargetType="{x:Type Button}">
+                            <Setter Property="Content" Value="Connect"/>
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding Status.Value}" Value="Programming">
-                                    <Setter Property="Content" Value="Programming..."/>
+                                <DataTrigger Binding="{Binding IsConnected.Value}" Value="true">
+                                    <Setter Property="Content" Value="Disconnect"/>
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
-                    </Label.Style>
-                </Label>
-            </StatusBarItem>
-            <StatusBarItem>
-                <Label Content="{Binding ProgrammingProgress.Value, StringFormat={}{0:p}}">
-                    <Label.Style>
-                        <Style TargetType="{x:Type Label}">
-                            <Setter Property="Visibility" Value="Collapsed"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding Status.Value}" Value="Programming">
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Label.Style>
-                </Label>
-            </StatusBarItem>
-        </StatusBar>
-    </Grid>
-    
+                    </Button.Style>
+                </Button>
+                <CheckBox Grid.Column="3" Grid.Row="1" Content="Disconnect on success" IsChecked="{Binding DisconnectOnSuccess.Value}"/>
+            </Grid>
+            <Grid Grid.Row="3">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox Grid.Column="0" VerticalAlignment="Top" Text="{Binding FileToProgram.Value}"/>
+                <Button Grid.Column="1" VerticalAlignment="Top" Content="_Browse">
+                    <i:Interaction.Triggers>
+                        <i:EventTrigger EventName="Click">
+                            <l:OpenFileDialogInteractionMessageAction>
+                                <l:DirectInteractionMessage CallbackCommand="{Binding OpenImageCommand}">
+                                    <l:OpeningFileSelectionMessage Filter="Intel HEX Image(*.hex)|*.hex|All files|*.*" Title="Open Image File"/>
+                                </l:DirectInteractionMessage>
+                            </l:OpenFileDialogInteractionMessageAction>
+                        </i:EventTrigger>
+                    </i:Interaction.Triggers>
+                </Button>
+                <Button Grid.Column="2" VerticalAlignment="Top" Command="{Binding ProgramToDeviceCommand}">_Program</Button>
+            </Grid>
+
+            <StatusBar Grid.Row="4">
+                <StatusBarItem>
+                    <Label>
+                        <Label.Style>
+                            <Style TargetType="{x:Type Label}">
+                                <Setter Property="Content" Value=""/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ProgrammerOperation.Value}" Value="Erasing">
+                                        <Setter Property="Content" Value="Erasing the device..."/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding ProgrammerOperation.Value}" Value="CheckingBlank">
+                                        <Setter Property="Content" Value="Checking the device is blank..."/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding ProgrammerOperation.Value}" Value="Programming">
+                                        <Setter Property="Content" Value="Programming..."/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding ProgrammerOperation.Value}" Value="Verifying">
+                                        <Setter Property="Content" Value="Verifying..."/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Label.Style>
+                    </Label>
+                </StatusBarItem>
+                <StatusBarItem>
+                    <Label>
+                        <Label.Style>
+                            <Style TargetType="{x:Type Label}">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ProgrammerOperation.Value}" Value="None">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Label.Style>
+                        <TextBlock Text="{Binding Path=ProgrammingProgress.Value, StringFormat=P1}"/>
+                    </Label>
+                </StatusBarItem>
+            </StatusBar>
+        </Grid>
+    </Border>
 </Window>
