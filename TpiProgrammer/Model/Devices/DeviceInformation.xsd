@@ -1,0 +1,99 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema id="DeviceInformation"
+    targetNamespace="http://fugafuga.org/schemas/DeviceInformation"
+    elementFormDefault="qualified"
+    xmlns="http://fugafuga.org/schemas/DeviceInformation"
+    xmlns:mstns="http://fugafuga.org/schemas/DeviceInformation"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+>
+  <xs:element name="DeviceInformations" type="DeviceInformations">
+    <xs:key name="ConfigurationSectionKey">
+      <xs:selector xpath="ConfigurationSection"/>
+      <xs:field xpath="@Name"/>
+    </xs:key>
+    <xs:keyref name="ConfigurationSectionRef" refer="ConfigurationSectionKey">
+      <xs:selector xpath="DeviceInformation/ConfigurationSectionRef"/>
+      <xs:field xpath="@Name"/>
+    </xs:keyref>
+  </xs:element>
+  
+  <xs:complexType name="DeviceInformations">
+    <xs:sequence>
+      <xs:element name="DeviceInformation" type="DeviceInformation" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="ConfigurationSection" type="ConfigurationSection" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="DeviceInformation">
+    <xs:sequence>
+      <xs:element name="FlashSection" type="FlashSection" minOccurs="1" maxOccurs="1"/>
+      <xs:element name="ConfigurationSectionRef" type="ConfigurationSectionRef" minOccurs="1" maxOccurs="1"/>
+    </xs:sequence>
+    <xs:attribute name="Name" type="xs:string" use="required"/>
+    <xs:attribute name="Signature" type="DeviceSignature" use="required"/>
+  </xs:complexType>
+
+  <xs:simpleType name="DeviceSignature">
+    <xs:restriction base="xs:hexBinary">
+      <xs:length value="3"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="UInt32Hex">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="0x[0-9A-Fa-f]{1,8}"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="UInt32">
+    <xs:restriction base="xs:nonNegativeInteger">
+      <xs:maxInclusive value="4294967295"/>
+    </xs:restriction>
+    
+  </xs:simpleType>
+  <xs:complexType name="FlashSection">
+    <xs:attribute name="Address" type="UInt32Hex" use="required"/>
+    <xs:attribute name="Size" type="UInt32" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="ConfigurationSectionRef">
+    <xs:attribute name="Name" type="xs:string" use="required"/>
+  </xs:complexType>
+  
+  <xs:complexType name="ConfigurationSection">
+    <xs:sequence>
+      <xs:element name="ConfigurationByte" type="ConfigurationByte" minOccurs="0" maxOccurs="unbounded">
+        <xs:unique name="ByteIndexUnique">
+          <xs:selector xpath="."/>
+          <xs:field xpath="@Index"/>
+        </xs:unique>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="Name" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="ConfigurationByte">
+    <xs:sequence>
+      <xs:element name="ConfigurationBit" type="ConfigurationBit" minOccurs="0" maxOccurs="8">
+        <xs:unique name="BitUnique">
+          <xs:selector xpath="ConfigurationBit"/>
+          <xs:field xpath="@Bit"/>
+        </xs:unique>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="Index" type="xs:nonNegativeInteger" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="ConfigurationBit">
+    <xs:attribute name="Bit" type="ByteBit" use="required"/>
+    <xs:attribute name="Name" type="xs:string" use="required"/>
+    <xs:attribute name="IsLocked" type="xs:boolean" use="optional" default="false"/>
+    <xs:attribute name="Description" type="xs:string" use="optional" default=""/>
+    <xs:attribute name="Default" type="xs:boolean" use="required"/>
+  </xs:complexType>
+
+  <xs:simpleType name="ByteBit">
+    <xs:restriction base="xs:nonNegativeInteger">
+      <xs:maxInclusive value="7"/>
+    </xs:restriction>
+  </xs:simpleType>
+</xs:schema>

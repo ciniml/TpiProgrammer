@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.31101.0
+# Visual Studio 14
+VisualStudioVersion = 14.0.22512.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TpiProgrammer", "TpiProgrammer\TpiProgrammer.csproj", "{490F9A0B-CB5C-4D7B-8447-43D1F4D68B18}"
 EndProject
@@ -11,6 +11,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{247905
 		.nuget\NuGet.exe = .nuget\NuGet.exe
 		.nuget\NuGet.targets = .nuget\NuGet.targets
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FtdiBinding", "FtdiBinding\FtdiBinding.csproj", "{37E2C4BA-73F1-471C-870E-4368E890B2A6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FtdiBinding.Test", "FtdiBinding.Test\FtdiBinding.Test.csproj", "{D7A203AF-925A-493B-AA0C-E89224B491F3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageLoader", "ImageLoader\ImageLoader.csproj", "{A342773C-D4D1-4A84-B38D-64F04423BB24}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -22,6 +28,18 @@ Global
 		{490F9A0B-CB5C-4D7B-8447-43D1F4D68B18}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{490F9A0B-CB5C-4D7B-8447-43D1F4D68B18}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{490F9A0B-CB5C-4D7B-8447-43D1F4D68B18}.Release|Any CPU.Build.0 = Release|Any CPU
+		{37E2C4BA-73F1-471C-870E-4368E890B2A6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{37E2C4BA-73F1-471C-870E-4368E890B2A6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{37E2C4BA-73F1-471C-870E-4368E890B2A6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{37E2C4BA-73F1-471C-870E-4368E890B2A6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D7A203AF-925A-493B-AA0C-E89224B491F3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D7A203AF-925A-493B-AA0C-E89224B491F3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D7A203AF-925A-493B-AA0C-E89224B491F3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D7A203AF-925A-493B-AA0C-E89224B491F3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A342773C-D4D1-4A84-B38D-64F04423BB24}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A342773C-D4D1-4A84-B38D-64F04423BB24}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A342773C-D4D1-4A84-B38D-64F04423BB24}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A342773C-D4D1-4A84-B38D-64F04423BB24}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
