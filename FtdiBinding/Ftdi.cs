@@ -1,9 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Security.Permissions;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using FtdiBinding.Native;
 
 namespace FtdiBinding
 {
@@ -29,19 +32,71 @@ namespace FtdiBinding
         {
         }
     }
+
+    public class FtdiDevice
+    {
+        private LibUsb.libusb_device_descriptor descriptor;
+        public string Manufacturer { get; private set; }
+        public string Description { get; private set; }
+        public string Serial { get; private set; }
+
+        public int VendorId => (int) this.descriptor.idVendor;
+        public int ProductId => (int)this.descriptor.idProduct;
+        public int BcdDevice => (int) this.descriptor.bcdDevice;
+
+        public override bool Equals(object obj)
+        {
+            if (obj == null) return false;
+            var device = obj as FtdiDevice;
+            return device != null &&
+                   this.Manufacturer == device.Manufacturer &&
+                   this.Description == device.Description &&
+                   this.Serial == device.Serial &&
+                   this.VendorId == device.VendorId &&
+                   this.ProductId == device.ProductId &&
+                   this.BcdDevice == device.BcdDevice;
+        }
+
+        public override int GetHashCode()
+        {
+            return
+                this.Manufacturer.GetHashCode() ^
+                this.Description.GetHashCode() ^
+                this.Serial.GetHashCode() ^
+                this.VendorId.GetHashCode() ^
+                this.ProductId.GetHashCode() ^
+                this.BcdDevice.GetHashCode();
+        }
+
+        public static bool operator==(FtdiDevice lhs, FtdiDevice rhs)
+        {
+            if (Object.ReferenceEquals(lhs, rhs)) return true;
+            if (lhs == null) return false;
+            if (rhs == null) return false;
+            return lhs.Equals(rhs);
+        }
+        public static bool operator!=(FtdiDevice lhs, FtdiDevice rhs)
+        {
+            return !(lhs != rhs);
+        }
+
+        internal FtdiDevice(string manufacturer, string description, string serial,
+            LibUsb.libusb_device_descriptor descriptor)
+        {
+            this.descriptor = descriptor;
+            this.Manufacturer = manufacturer;
+            this.Description = description;
+            this.Serial = serial;
+        }
+    }
+
     public class Ftdi : IDisposable
     {
         private LibFtdi.FtdiContext context;
         private bool isInitialized = false;
         private bool isOpened = false;
 
-        public Ftdi()
-        {
-            this.context = LibFtdi.ftdi_new();
-            CheckResult(LibFtdi.ftdi_init(this.context));
-            this.isInitialized = true;
-        }
-
+        
         private static int CheckResult(int result)
         {
             if (result < 0)
@@ -50,13 +105,99 @@ namespace FtdiBinding
             }
             return result;
         }
-        public Ftdi(int vendor, int product, string description, string serial, int index)
-            : this()
+
+        private LibUsb.libusb_hotplug_callback_fn hotplugCallback;
+        private IntPtr hotPlugNotificationHandle;
+        private IntPtr usbDeviceContext;
+
+        public event EventHandler DeviceDetached;
+
+        private void RegisterHotPlugNotification()
         {
-            CheckResult(LibFtdi.ftdi_usb_open_desc_index(this.context, vendor, product, description, serial, (uint)index));
-            this.isOpened = true;
+            this.hotplugCallback = (ctx, device, evt, data) =>
+            {
+                if (device != this.usbDeviceContext)
+                {
+                    return 0;
+                }
+                this.DeviceDetached?.Invoke(this, new EventArgs());
+                return 1;
+            };
+            var usbContext = this.context.UsbContext;
+            this.usbDeviceContext = LibUsb.libusb_get_device(this.context.UsbDeviceHandle);
+            var result = LibUsb.libusb_hotplug_register_callback(
+                usbContext,
+                LibUsb.libusb_hotplug_event.LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT,
+                LibUsb.libusb_hotplug_flag.LIBUSB_HOTPLUG_ENUMERATE,
+                LibUsb.LIBUSB_HOTPLUG_MATCH_ANY, LibUsb.LIBUSB_HOTPLUG_MATCH_ANY, LibUsb.LIBUSB_HOTPLUG_MATCH_ANY,
+                this.hotplugCallback, IntPtr.Zero, out this.hotPlugNotificationHandle);
         }
 
+        private void UnregisterHotPlugNotification()
+        {
+            if (this.hotPlugNotificationHandle != IntPtr.Zero)
+            {
+                LibUsb.libusb_hotplug_deregister_callback(this.context.UsbContext, this.hotPlugNotificationHandle);
+                this.hotPlugNotificationHandle = IntPtr.Zero;
+                this.hotplugCallback = null;
+                this.usbDeviceContext = IntPtr.Zero;
+            }
+        }
+
+        public IReadOnlyList<FtdiDevice> GetDevices()
+        {
+            const int stringBufferSize = 1024;
+            var devices = new List<FtdiDevice>();
+
+            IntPtr deviceListHandle;
+            CheckResult(LibFtdi.ftdi_usb_find_all(this.context, out deviceListHandle, 0, 0));
+            var deviceListPtr = deviceListHandle;
+            try
+            {
+                while (deviceListPtr != IntPtr.Zero)
+                {
+                    var deviceList = (LibFtdi.FtdiDeviceList) Marshal.PtrToStructure(deviceListPtr, typeof (LibFtdi.FtdiDeviceList));
+
+                    var descriptor = new LibUsb.libusb_device_descriptor();
+                    LibUsb.libusb_get_device_descriptor(deviceList.Device, out descriptor);
+                    var manufacturerString = new StringBuilder(stringBufferSize);
+                    var productString = new StringBuilder(stringBufferSize);
+                    var serialString = new StringBuilder(stringBufferSize);
+                    LibFtdi.ftdi_usb_get_strings(this.context, deviceList.Device, 
+                        manufacturerString, stringBufferSize, 
+                        productString, stringBufferSize, 
+                        serialString, stringBufferSize);
+
+                    devices.Add(new FtdiDevice(manufacturerString.ToString(), productString.ToString(), serialString.ToString(), descriptor));
+                    deviceListPtr = deviceList.Next;
+
+                    Marshal.DestroyStructure(deviceListPtr, typeof (LibFtdi.FtdiDeviceList));
+                }
+                return devices;
+            }
+            finally
+            {
+                LibFtdi.ftdi_list_free2(deviceListHandle);
+            }
+        }
+        public void Open(FtdiDevice device)
+        {
+            this.Open(device.VendorId, device.ProductId, device.Description, device.Serial, 0);
+        }
+        public void Open(int vendor, int product, string description, string serial, int index)
+        {
+            if( this.isOpened ) throw new InvalidOperationException("Device is already opened.");
+            CheckResult(LibFtdi.ftdi_usb_open_desc_index(this.context, vendor, product, description, serial, (uint)index));
+            this.RegisterHotPlugNotification();
+            this.isOpened = true;
+        }
+        public Ftdi()
+        {
+            this.context = LibFtdi.ftdi_new();
+            CheckResult(LibFtdi.ftdi_init(this.context));
+            this.isInitialized = true;
+        }
+        
         public void PurgeReceiveBuffer()
         {
             CheckResult(LibFtdi.ftdi_usb_purge_rx_buffer(this.context));
@@ -188,6 +329,8 @@ namespace FtdiBinding
         {
             if (this.context != null)
             {
+                this.UnregisterHotPlugNotification();
+                //
                 if (this.isOpened)
                 {
                     LibFtdi.ftdi_usb_close(this.context);

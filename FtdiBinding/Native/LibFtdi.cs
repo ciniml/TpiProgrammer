@@ -1,19 +1,15 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security.Permissions;
 using System.Text;
-using System.Threading.Tasks;
 
-namespace FtdiBinding
+namespace FtdiBinding.Native
 {
 
     public static class LibFtdi
     {
-        private const string LibFtdiFileName = @"libftdi1.dll";
-
-
+        private const string LibFtdiFileName = @"libftdi1";
+        
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
         public struct FtdiVersionInfo
         {
@@ -22,6 +18,13 @@ namespace FtdiBinding
             public int Micro;
             public IntPtr VersionString;
             public IntPtr SnapshotString;
+        }
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+        public struct FtdiDeviceList
+        {
+            public IntPtr Next;
+            public IntPtr Device;
         }
 
         //[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
@@ -53,21 +56,7 @@ namespace FtdiBinding
         //    public FtdiModuleDetachMode ModuleDetachMode;
         //}
 
-        static LibFtdi()
-        {
-            PreloadLibraryWindows();
-        }
-
-        private const uint LOAD_WITH_ALTERED_SEARCH_PATH = 0x00000008u;
-
-        [DllImport("kernel32")]
-        private static extern IntPtr LoadLibraryEx(string lpLibFileName, IntPtr hFile, uint dwFlags);
-
-        private static void PreloadLibraryWindows()
-        {
-            var path = (Environment.Is64BitProcess ? @"Native\x64\" : @"Native\x86\") + LibFtdiFileName;
-            LoadLibraryEx(path, IntPtr.Zero, LOAD_WITH_ALTERED_SEARCH_PATH);
-        }
+        private static readonly Preloader preloader = new Preloader(LibFtdiFileName);
 
         [DllImport(LibFtdiFileName, CharSet = CharSet.Ansi, CallingConvention = CallingConvention.Cdecl)]
         public static extern int ftdi_init(FtdiContext ftdi);
@@ -88,6 +77,10 @@ namespace FtdiBinding
         public static extern void ftdi_list_free2(IntPtr devlist);
         [DllImport(LibFtdiFileName, CharSet = CharSet.Ansi, CallingConvention = CallingConvention.Cdecl)]
         public static extern int ftdi_usb_find_all(FtdiContext ftdi, out IntPtr devlist, int vendor, int product);
+
+        [DllImport(LibFtdiFileName, CharSet = CharSet.Ansi, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int ftdi_usb_get_strings(FtdiContext ftdi, IntPtr dev, StringBuilder manufacturer,
+            int mnf_len, StringBuilder description, int desc_len, StringBuilder serial, int serial_len);
 
         [DllImport(LibFtdiFileName, CharSet = CharSet.Ansi, CallingConvention = CallingConvention.Cdecl)]
         public static extern int ftdi_usb_open_dev(FtdiContext ftdi, IntPtr device);
@@ -233,31 +226,25 @@ namespace FtdiBinding
             }
 
             public override bool IsInvalid => this.handle == IntPtr.Zero;
-        }
 
-        [SecurityPermission(SecurityAction.InheritanceDemand, UnmanagedCode = true)]
-        [SecurityPermission(SecurityAction.Demand, UnmanagedCode = true)]
-        public class FtdiDeviceList : SafeHandle
-        {
-            public FtdiDeviceList() : base(IntPtr.Zero, true)
+            
+            public IntPtr UsbContext
             {
-            }
-
-            public FtdiDeviceList(IntPtr devlist) : this()
-            {
-                this.SetHandle(devlist);
-            }
-
-            protected override bool ReleaseHandle()
-            {
-                if (!this.IsInvalid)
+                get
                 {
-                    ftdi_list_free2(this.handle);
+                    if(this.IsInvalid) throw new InvalidOperationException();
+                    return Marshal.ReadIntPtr(this.handle, 0);
                 }
-                return true;
             }
-
-            public override bool IsInvalid => this.handle == IntPtr.Zero;
+            public IntPtr UsbDeviceHandle
+            {
+                get
+                {
+                    if (this.IsInvalid) throw new InvalidOperationException();
+                    return Marshal.ReadIntPtr(this.handle, IntPtr.Size);
+                }
+            }
         }
+        
     }
 }

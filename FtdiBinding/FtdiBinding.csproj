@@ -43,7 +43,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Ftdi.cs" />
-    <Compile Include="Native\NativeMethods.cs" />
+    <Compile Include="Native\LibFtdi.cs" />
+    <Compile Include="Native\LibUsb.cs" />
+    <Compile Include="Native\Preloader.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

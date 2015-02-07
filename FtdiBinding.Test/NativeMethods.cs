@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using FtdiBinding.Native;
 using Xunit;
 
 namespace FtdiBinding.Test
@@ -35,20 +36,20 @@ namespace FtdiBinding.Test
         {
             using (var context = LibFtdi.ftdi_new())
             {
-                var deviceList = new LibFtdi.FtdiDeviceList();
+                IntPtr devlist = IntPtr.Zero;
                 LibFtdi.ftdi_init(context);
                 try
                 {
-                    IntPtr devlist;
                     var count = LibFtdi.ftdi_usb_find_all(context, out devlist, 0, 0);
-                    deviceList = new LibFtdi.FtdiDeviceList(devlist);
                     Assert.True(count >= 0);
-                    Assert.False(deviceList.IsInvalid);
-                    Assert.False(deviceList.IsClosed);
+                    Assert.True(devlist != IntPtr.Zero);
                 }
                 finally
                 {
-                    deviceList.Close();
+                    if (devlist != IntPtr.Zero)
+                    {
+                        LibFtdi.ftdi_list_free2(devlist);
+                    }
                     LibFtdi.ftdi_deinit(context);
                 }
             }

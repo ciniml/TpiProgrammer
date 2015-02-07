@@ -7,6 +7,7 @@ using System.Reactive.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using ImageLoader;
 using TpiProgrammer.Annotations;
 using TpiProgrammer.Model.Devices;
 
@@ -263,7 +264,7 @@ namespace TpiProgrammer.Model
             SparseImage<byte> image;
             using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
-                image = await HexLoader.LoadAsync(stream, cancellationToken.Value);
+                image = await SimpleImageLoader.LoadHexAsync(stream, cancellationToken.Value);
             }
 
             using (this.EnterOperationScope(ProgrammerOperation.Programming))
