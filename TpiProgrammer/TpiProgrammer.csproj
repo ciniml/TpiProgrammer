@@ -38,9 +38,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="FTD2XX_NET">
-      <HintPath>..\..\..\dev\lib\FTD2XX_NET_v1.0.14\FTD2XX_NET_v1.0.14\FTD2XX_NET.dll</HintPath>
-    </Reference>
     <Reference Include="Livet">
       <HintPath>..\packages\LivetCask.1.1.0.0\lib\net45\Livet.dll</HintPath>
     </Reference>
@@ -166,6 +163,10 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\FtdiBinding\FtdiBinding.csproj">
+      <Project>{37e2c4ba-73f1-471c-870e-4368e890b2a6}</Project>
+      <Name>FtdiBinding</Name>
+    </ProjectReference>
     <ProjectReference Include="..\ImageLoader\ImageLoader.csproj">
       <Project>{a342773c-d4d1-4a84-b38d-64f04423bb24}</Project>
       <Name>ImageLoader</Name>

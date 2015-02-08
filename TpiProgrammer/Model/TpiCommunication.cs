@@ -11,49 +11,13 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Documents;
+using System.Windows.Media.TextFormatting;
 using Codeplex.Reactive;
-using FTD2XX_NET;
 using TpiProgrammer.Annotations;
+using FtdiBinding;
 
 namespace TpiProgrammer.Model
 {
-    /// <summary>
-    /// FTDI error
-    /// </summary>
-    [Serializable]
-    public class FtdiException : Exception
-    {
-        public FTDI.FT_STATUS Status { get; private set; }
-
-        public FtdiException(FTDI.FT_STATUS status)
-        {
-            this.Status = status;
-        }
-
-        protected FtdiException(
-            SerializationInfo info,
-            StreamingContext context) : base(info, context)
-        {
-        }
-    }
-
-    /// <summary>
-    /// Extensions for FT_STATUS enumeration.
-    /// </summary>
-    public static class FtdiStatusExtensions
-    {
-        /// <summary>
-        /// Check FT_STATUS and raise exception if the status is not FT_OK.
-        /// </summary>
-        /// <param name="status">A status value</param>
-        public static void Check(this FTDI.FT_STATUS status)
-        {
-            if (status != FTDI.FT_STATUS.FT_OK)
-            {
-                throw new FtdiException(status);
-            }
-        }
-    }
 
     /// <summary>
     /// Device Signature of AVR
@@ -94,37 +58,33 @@ namespace TpiProgrammer.Model
 
         public static ReadOnlyObservableCollection<TpiCommunication> Devices { get; private set; }
         
-        private static Dictionary<uint, TpiCommunication> devices = new Dictionary<uint, TpiCommunication>();
+        private static Dictionary<FtdiDevice, TpiCommunication> tpiDevices = new Dictionary<FtdiDevice, TpiCommunication>();
+        private static readonly Ftdi enumerationContext;
+
         private bool isConnected;
 
+        
         public static void UpdateDevices()
         {
-            lock (devices)
+            lock (tpiDevices)
             {
-                var ftdi = new FTDI();
-                uint numberOfDevices = 0;
-                ftdi.GetNumberOfDevices(ref numberOfDevices);
-                var newDeviceList = new FTDI.FT_DEVICE_INFO_NODE[numberOfDevices];
-                ftdi.GetDeviceList(newDeviceList);
+                var currentDevices = enumerationContext.GetDevices();
+                var previousDevices = tpiDevices.Keys;
+                var unchangedDevices = previousDevices.Intersect(currentDevices).ToArray();
+                var addedDevices = currentDevices.Except(unchangedDevices).ToList();
+                var removedDevices = previousDevices.Except(unchangedDevices).ToList();
 
-                var currentDeviceKeys = devices.Keys;
-                var newDeviceMap = newDeviceList.ToDictionary(x => x.LocId);
-                var unchangedDeviceKeys = currentDeviceKeys.Intersect(newDeviceMap.Keys).ToArray();
-                var addedDeviceKeys = newDeviceMap.Keys.Except(unchangedDeviceKeys).ToList();
-                var removedDeviceKeys = currentDeviceKeys.Except(unchangedDeviceKeys).ToList();
-
-                foreach (var removedDeviceKey in removedDeviceKeys)
+                foreach (var removedDevice in removedDevices)
                 {
-                    var device = devices[removedDeviceKey];
-                    devices.Remove(removedDeviceKey);
+                    var device = tpiDevices[removedDevice];
+                    tpiDevices.Remove(removedDevice);
                     observableDevices.Remove(device);
                 }
-                foreach (var addedDeviceKey in addedDeviceKeys)
+                foreach (var addedDevice in addedDevices)
                 {
-                    var deviceInfo = newDeviceMap[addedDeviceKey];
-                    var device = new TpiCommunication(deviceInfo);
+                    var device = new TpiCommunication(addedDevice);
                     observableDevices.Add(device);
-                    devices.Add(device.LocationId, device);
+                    tpiDevices.Add(addedDevice, device);
                 }
             }
         }
@@ -132,22 +92,21 @@ namespace TpiProgrammer.Model
         static TpiCommunication() 
         {
             Devices = new ReadOnlyObservableCollection<TpiCommunication>(observableDevices);
+            enumerationContext = new Ftdi();
             UpdateDevices();
         }
 
-        private readonly FTDI.FT_DEVICE_INFO_NODE deviceInfoNode;
-        private FTDI ftdi;
+        private readonly FtdiDevice device;
+        private Ftdi ftdi;
         private DeviceSignature deviceSignature;
 
-        private uint LocationId => this.deviceInfoNode.LocId;
-
-        public string Description => this.deviceInfoNode.Description;
+        public string Description => this.device.Description;
 
         public bool IsOpened => this.ftdi != null;
 
-        private TpiCommunication(FTDI.FT_DEVICE_INFO_NODE deviceInfoNode)
+        private TpiCommunication(FtdiDevice device)
         {
-            this.deviceInfoNode = deviceInfoNode;
+            this.device = device;
             this.IsConnected = true;
         }
 
@@ -389,18 +348,46 @@ private class TpiCommandSequence
         }
 #endif
 
+        private void Read(byte[] buffer, int offset, int length)
+        {
+            while (length > 0)
+            {
+                var bytesRead = this.ftdi.Read(buffer, offset, length);
+                if (bytesRead == 0)
+                {
+                    // No data are currently available. Wait.
+                    Thread.Sleep(0);
+                }
+                offset += bytesRead;
+                length -= bytesRead;
+            }
+        }
+
+        private void Write(byte[] buffer, int offset, int length)
+        {
+            while (length > 0)
+            {
+                var bytesWritten = this.ftdi.Write(buffer, offset, length);
+                if (bytesWritten == 0)
+                {
+                    // No data are currently available. Wait.
+                    Thread.Sleep(0);
+                }
+                offset += bytesWritten;
+                length -= bytesWritten;
+            }
+        }
+
         private Task<byte[]> ExecuteCommandAsync(MpsseCommand command)
         {
             return Task.Run(() =>
             {
                 var commandBytes = command.ToBytes();
-                var bytesWritten = 0u;
-                this.ftdi.Write(commandBytes, commandBytes.Length, ref bytesWritten).Check();
+                this.Write(commandBytes, 0, commandBytes.Length);
                 var response = new byte[command.ExpectedResponseLength];
                 if (response.Length > 0)
                 {
-                    var bytesRead = 0u;
-                    this.ftdi.Read(response, (uint) response.Length, ref bytesRead).Check();
+                    this.Read(response, 0, response.Length);
                 }
                 return response;
             });
@@ -491,11 +478,11 @@ private class TpiCommandSequence
         public void Open()
         {
             // Create FTDI device object and open the device.
-            this.ftdi = new FTDI();
-            this.ftdi.OpenByLocation(this.deviceInfoNode.LocId).Check();
+            this.ftdi = new Ftdi();
+            this.ftdi.Open(this.device);
             // Configure device mode
-            this.ftdi.SetBitMode(0, FTDI.FT_BIT_MODES.FT_BIT_MODE_MPSSE).Check();
-            this.ftdi.Purge(FTDI.FT_PURGE.FT_PURGE_RX | FTDI.FT_PURGE.FT_PURGE_TX).Check();
+            this.ftdi.SetBitMode(0x1b, FtdiMpsseMode.Mpsse);
+            this.ftdi.PurgeBothBuffers();
         }
 
         public async Task<byte> LoadDataIndirectAsync(bool postIncrement)

@@ -9,7 +9,7 @@ namespace FtdiBinding.Native
 {
     public static class LibUsb
     {
-        private const string LibUsbFileName = @"libusb-1.0";
+        private const string LibUsbFileName = @"libusb-1.0.dll";
 
         [StructLayout(LayoutKind.Sequential)]
         public struct libusb_device_descriptor
@@ -47,23 +47,23 @@ namespace FtdiBinding.Native
 
         private static readonly Preloader preloader = new Preloader(LibUsbFileName);
 
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet=CharSet.Ansi)]
+        [UnmanagedFunctionPointer(CallingConvention.StdCall, CharSet=CharSet.Ansi)]
         public delegate int libusb_hotplug_callback_fn(IntPtr ctx, IntPtr device, [MarshalAs(UnmanagedType.I4)]libusb_hotplug_event evt, IntPtr user_data);
 
-        [DllImport(LibUsbFileName, CharSet = CharSet.Ansi, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LibUsbFileName, CharSet = CharSet.Ansi)]
         public static extern int libusb_hotplug_register_callback(
             IntPtr context, libusb_hotplug_event events, libusb_hotplug_flag flags,
             int vendor_id, int product_id, int dev_class,
             libusb_hotplug_callback_fn cb_fn, IntPtr user_data,
             out IntPtr handle);
 
-        [DllImport(LibUsbFileName, CharSet = CharSet.Ansi, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LibUsbFileName, CharSet = CharSet.Ansi)]
         public static extern void libusb_hotplug_deregister_callback(IntPtr context, IntPtr handle);
 
-        [DllImport(LibUsbFileName, CharSet = CharSet.Ansi, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LibUsbFileName, CharSet = CharSet.Ansi)]
         public static extern IntPtr libusb_get_device(IntPtr dev_handle);
 
-        [DllImport(LibUsbFileName, CharSet = CharSet.Ansi, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LibUsbFileName, CharSet = CharSet.Ansi)]
         public static extern int libusb_get_device_descriptor(IntPtr context, out libusb_device_descriptor desc);
     }
 }

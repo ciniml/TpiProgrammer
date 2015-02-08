@@ -11,7 +11,7 @@ namespace FtdiBinding.Native
     {
         private const uint LOAD_WITH_ALTERED_SEARCH_PATH = 0x00000008u;
 
-        [DllImport("kernel32")]
+        [DllImport("kernel32",SetLastError = true)]
         private static extern IntPtr LoadLibraryEx(string lpLibFileName, IntPtr hFile, uint dwFlags);
 
         public Preloader(string libraryFileName)

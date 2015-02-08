@@ -60,9 +60,9 @@ namespace FtdiBinding
         public override int GetHashCode()
         {
             return
-                this.Manufacturer.GetHashCode() ^
-                this.Description.GetHashCode() ^
-                this.Serial.GetHashCode() ^
+                (this.Manufacturer?.GetHashCode() ?? 0) ^
+                (this.Description?.GetHashCode() ?? 0) ^
+                (this.Serial?.GetHashCode() ?? 0) ^
                 this.VendorId.GetHashCode() ^
                 this.ProductId.GetHashCode() ^
                 this.BcdDevice.GetHashCode();
@@ -70,14 +70,14 @@ namespace FtdiBinding
 
         public static bool operator==(FtdiDevice lhs, FtdiDevice rhs)
         {
-            if (Object.ReferenceEquals(lhs, rhs)) return true;
-            if (lhs == null) return false;
-            if (rhs == null) return false;
+            if (object.ReferenceEquals(lhs, rhs)) return true;
+            if ((object)lhs == null) return false;
+            if ((object)rhs == null) return false;
             return lhs.Equals(rhs);
         }
         public static bool operator!=(FtdiDevice lhs, FtdiDevice rhs)
         {
-            return !(lhs != rhs);
+            return !(lhs == rhs);
         }
 
         internal FtdiDevice(string manufacturer, string description, string serial,
@@ -160,18 +160,23 @@ namespace FtdiBinding
 
                     var descriptor = new LibUsb.libusb_device_descriptor();
                     LibUsb.libusb_get_device_descriptor(deviceList.Device, out descriptor);
-                    var manufacturerString = new StringBuilder(stringBufferSize);
-                    var productString = new StringBuilder(stringBufferSize);
-                    var serialString = new StringBuilder(stringBufferSize);
-                    LibFtdi.ftdi_usb_get_strings(this.context, deviceList.Device, 
-                        manufacturerString, stringBufferSize, 
-                        productString, stringBufferSize, 
-                        serialString, stringBufferSize);
+                    var manufacturerBuffer = new StringBuilder(stringBufferSize);
+                    var productBuffer = new StringBuilder(stringBufferSize);
+                    var serialBuffer = new StringBuilder(stringBufferSize);
+                    var result = (LibFtdi.FtdiError)LibFtdi.ftdi_usb_get_strings(this.context, deviceList.Device, 
+                        manufacturerBuffer, stringBufferSize, 
+                        productBuffer, stringBufferSize, 
+                        serialBuffer, stringBufferSize);
 
-                    devices.Add(new FtdiDevice(manufacturerString.ToString(), productString.ToString(), serialString.ToString(), descriptor));
+                    if (result != LibFtdi.FtdiError.UnableToOpenDevice &&
+                        result != LibFtdi.FtdiError.LibUsbGetDeviceDescriptorFailed)
+                    {
+                        var manufacturer = result == LibFtdi.FtdiError.GetProductManufacturerFailed ? null : manufacturerBuffer.ToString();
+                        var product = result == LibFtdi.FtdiError.GetProductDescriptionFailed ? null : productBuffer.ToString();
+                        var serial = result == LibFtdi.FtdiError.GetSerialNumberFailed ? null : serialBuffer.ToString();
+                        devices.Add(new FtdiDevice(manufacturer, product, serial, descriptor));
+                    }
                     deviceListPtr = deviceList.Next;
-
-                    Marshal.DestroyStructure(deviceListPtr, typeof (LibFtdi.FtdiDeviceList));
                 }
                 return devices;
             }
@@ -187,10 +192,20 @@ namespace FtdiBinding
         public void Open(int vendor, int product, string description, string serial, int index)
         {
             if( this.isOpened ) throw new InvalidOperationException("Device is already opened.");
+            CheckResult(LibFtdi.ftdi_set_interface(this.context, FtdiInterface.A));
             CheckResult(LibFtdi.ftdi_usb_open_desc_index(this.context, vendor, product, description, serial, (uint)index));
             this.RegisterHotPlugNotification();
             this.isOpened = true;
         }
+
+        public void Close()
+        {
+            if( !this.isOpened ) throw new InvalidOperationException("Device is not opened.");
+            this.UnregisterHotPlugNotification();
+            CheckResult(LibFtdi.ftdi_usb_close(this.context));
+            this.isOpened = false;
+        }
+
         public Ftdi()
         {
             this.context = LibFtdi.ftdi_new();
@@ -219,11 +234,11 @@ namespace FtdiBinding
         }
         public int Write(byte[] data, int offset, int size)
         {
-            var handle = GCHandle.Alloc(data);
+            var handle = GCHandle.Alloc(data, GCHandleType.Pinned);
             try
             {
                 var pointer = handle.AddrOfPinnedObject();
-                var pointerWithOffset = new IntPtr(pointer.ToInt64() + offset);
+                var pointerWithOffset = IntPtr.Add(pointer, offset);
                 return CheckResult(LibFtdi.ftdi_write_data(this.context, pointerWithOffset, size));
             }
             finally
@@ -249,11 +264,11 @@ namespace FtdiBinding
         }
         public int Read(byte[] data, int offset, int size)
         {
-            var handle = GCHandle.Alloc(data);
+            var handle = GCHandle.Alloc(data, GCHandleType.Pinned);
             try
             {
                 var pointer = handle.AddrOfPinnedObject();
-                var pointerWithOffset = new IntPtr(pointer.ToInt64() + offset);
+                var pointerWithOffset = IntPtr.Add(pointer, offset);
                 return CheckResult(LibFtdi.ftdi_read_data(this.context, pointerWithOffset, size));
             }
             finally
@@ -357,6 +372,7 @@ namespace FtdiBinding
             this.Dispose(false);
         }
     }
+
     public enum FtdiChipType
     {
         TypeAM,
@@ -375,7 +391,7 @@ namespace FtdiBinding
         DontDetachSioModule,
     }
 
-    public enum FtdiMpsseMode
+    public enum FtdiMpsseMode : byte
     {
         Reset = 0x00,
         BitBang = 0x01,

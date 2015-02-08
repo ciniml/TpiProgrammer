@@ -8,8 +8,19 @@ namespace FtdiBinding.Native
 
     public static class LibFtdi
     {
-        private const string LibFtdiFileName = @"libftdi1";
-        
+        private const string LibFtdiFileName = @"libftdi1.dll";
+
+        public enum FtdiError
+        {
+            NoError = 0,
+            WrongArguments = -1,
+            UnableToOpenDevice = -4,
+            GetProductManufacturerFailed = -7,
+            GetProductDescriptionFailed = -8,
+            GetSerialNumberFailed = -9,
+            LibUsbGetDeviceDescriptorFailed = -11,
+        }
+
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
         public struct FtdiVersionInfo
         {
