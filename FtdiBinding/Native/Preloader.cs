@@ -17,7 +17,10 @@ namespace FtdiBinding.Native
         public Preloader(string libraryFileName)
         {
             var path = (Environment.Is64BitProcess ? @"Native\x64\" : @"Native\x86\") + libraryFileName;
-            LoadLibraryEx(path, IntPtr.Zero, LOAD_WITH_ALTERED_SEARCH_PATH);
+            if (LoadLibraryEx(path, IntPtr.Zero, LOAD_WITH_ALTERED_SEARCH_PATH) == IntPtr.Zero)
+            {
+                throw new Exception(String.Format("Failed to load library {0}", libraryFileName));
+            }
         }
     }
 }
