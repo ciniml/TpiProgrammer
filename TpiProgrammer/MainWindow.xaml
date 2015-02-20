@@ -4,7 +4,8 @@
         xmlns:viewModel="clr-namespace:TpiProgrammer.ViewModel"
         xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
         xmlns:l="http://schemas.livet-mvvm.net/2011/wpf"
-        Title="TPI Programmer" Height="160" Width="525">
+        xmlns:view="clr-namespace:TpiProgrammer.View"
+        Title="TPI Programmer" Height="200" Width="480">
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -65,6 +66,15 @@
     <Window.DataContext>
         <viewModel:MainWindowViewModel/>
     </Window.DataContext>
+    <i:Interaction.Triggers>
+        <i:EventTrigger EventName="Closed">
+            <l:DataContextDisposeAction/>
+        </i:EventTrigger>
+        <l:InteractionMessageTrigger Messenger="{Binding Messenger}" MessageKey="{x:Static viewModel:MainWindowViewModel.ErrorOccuredMessageKey}">
+            <view:ShowMessageBoxAction Owner="{Binding RelativeSource={RelativeSource AncestorType={x:Type Window}}}" Caption="Error" Icon="Error" 
+                                       Message="An error has occured while operation#xa{0}"/>
+        </l:InteractionMessageTrigger>
+    </i:Interaction.Triggers>
     <Border 
         BorderThickness="1">
         <Border.Style>
@@ -83,11 +93,10 @@
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
                 <RowDefinition Height="32"/>
-                <RowDefinition Height="32"/>
-                <RowDefinition Height="48"/>
-                <RowDefinition Height="24"/>
+                <RowDefinition Height="*"/>
                 <RowDefinition Height="24"/>
             </Grid.RowDefinitions>
+            <!-- Caption bar -->
             <DockPanel 
                 Grid.Row="0" Grid.Column="0"
                 x:Name="CaptionPanel"       
@@ -116,106 +125,158 @@
                         </i:EventTrigger>
                     </i:Interaction.Triggers>
                 </Button>
+                <CheckBox DockPanel.Dock="Right" VerticalAlignment="Center" Margin="2,0" Content="Always on top"
+                          IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type Window}}, Path=Topmost}"/>
                 <TextBlock Text="{Binding Title, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Window}}}" Style="{DynamicResource CaptionTextStyle}"/>
             </DockPanel>
             
-            <StackPanel Grid.Row="1" Orientation="Horizontal">
-                <Label Content="ProgrammingDevices:"/>
-                <ComboBox ItemsSource="{Binding ProgrammingDevices}" 
-                    SelectedItem="{Binding SelectedProgrammingDevice.Value}"
-                    MinWidth="200">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding Description}"/>
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
-                <Button Command="{Binding OpenSelectedProgrammerCommand}" Content="Open"
-                Margin="4,2"/>
+            <!-- Main View -->
+            <TabControl Grid.Row="1" TabStripPlacement="Bottom">
+                <!-- Main Tab -->
+	            <TabItem Header="Main">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
 
-            </StackPanel>
-            <Grid Grid.Row="2">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="auto"/>
-                    <RowDefinition Height="auto"/>
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="auto"/>
-                    <ColumnDefinition Width="auto"/>
-                </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Grid.Row="0" Text="Selected Programmer:"/>
-                <TextBlock Grid.Column="1" Grid.Row="0" Text="{Binding CurrentProgrammer.Value.Description}"/>
-                <TextBlock Grid.Column="0" Grid.Row="1" Text="Device:"/>
-                <TextBlock Grid.Column="1" Grid.Row="1" Margin="6,0" Text="{Binding TargetDevice.Value.Name}"/>
-                <Button Grid.Column="2" Grid.Row="1"
-                        Command="{Binding ToggleConnectionCommand}">
-                    <Button.Style>
-                        <Style TargetType="{x:Type Button}">
-                            <Setter Property="Content" Value="Connect"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsConnected.Value}" Value="true">
-                                    <Setter Property="Content" Value="Disconnect"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Button.Style>
-                </Button>
-                <CheckBox Grid.Column="3" Grid.Row="1" Content="Disconnect on success" IsChecked="{Binding DisconnectOnSuccess.Value}"/>
-            </Grid>
-            <Grid Grid.Row="3">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <TextBox Grid.Column="0" VerticalAlignment="Top" Text="{Binding FileToProgram.Value}"/>
-                <Button Grid.Column="1" VerticalAlignment="Top" Content="_Browse">
-                    <i:Interaction.Triggers>
-                        <i:EventTrigger EventName="Click">
-                            <l:OpenFileDialogInteractionMessageAction>
-                                <l:DirectInteractionMessage CallbackCommand="{Binding OpenImageCommand}">
-                                    <l:OpeningFileSelectionMessage Filter="Intel HEX Image(*.hex)|*.hex|All files|*.*" Title="Open Image File"/>
-                                </l:DirectInteractionMessage>
-                            </l:OpenFileDialogInteractionMessageAction>
-                        </i:EventTrigger>
-                    </i:Interaction.Triggers>
-                </Button>
-                <Button Grid.Column="2" VerticalAlignment="Top" Command="{Binding ProgramToDeviceCommand}">_Program</Button>
-            </Grid>
+                        <!-- Programmer select list -->
+                        <TextBlock Grid.Row="0" Grid.Column="0">Programmers:</TextBlock>
+                        <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding ProgrammingDevices}" 
+                            SelectedItem="{Binding SelectedProgrammingDevice.Value}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Description}"/>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <Button Grid.Row="0" Grid.Column="2" 
+                                Command="{Binding OpenSelectedProgrammerCommand}" Content="Open"/>
 
-            <StatusBar Grid.Row="4">
+                        <!-- Current connected device -->
+                        <TextBlock Grid.Column="0" Grid.Row="1" >Device:</TextBlock>
+                        <TextBox Grid.Column="1" Grid.Row="1" Text="{Binding TargetDevice.Value.Name}" IsReadOnly="True"/>
+                        <Button Grid.Column="2" Grid.Row="1"
+                                Command="{Binding ToggleConnectionCommand}">
+                            <Button.Style>
+                                <Style TargetType="{x:Type Button}" BasedOn="{StaticResource {x:Type Button}}">
+                                    <Setter Property="Content" Value="Connect"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsConnected.Value}" Value="true">
+                                            <Setter Property="Content" Value="Disconnect"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+
+                        <!-- File select -->
+                        <TextBlock Grid.Column="0" Grid.Row="2" >File:</TextBlock>
+                        <TextBox Grid.Column="1" Grid.Row="2" VerticalAlignment="Top" Text="{Binding FileToProgram.Value}"/>
+                        <Button Grid.Column="2" Grid.Row="2" Content="_Browse">
+                            <i:Interaction.Triggers>
+                                <i:EventTrigger EventName="Click">
+                                    <l:OpenFileDialogInteractionMessageAction>
+                                        <l:DirectInteractionMessage CallbackCommand="{Binding OpenImageCommand}">
+                                            <l:OpeningFileSelectionMessage Filter="Intel HEX Image(*.hex)|*.hex|All files|*.*" Title="Open Image File"/>
+                                        </l:DirectInteractionMessage>
+                                    </l:OpenFileDialogInteractionMessageAction>
+                                </i:EventTrigger>
+                            </i:Interaction.Triggers>
+                        </Button>
+                        <!-- Program button -->
+                        <Button Grid.Column="2" Grid.Row="3" 
+                                Command="{Binding ProgramToDeviceCommand}">_Program</Button>
+                        <CheckBox Grid.Column="1" Grid.Row="3" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                  Content="Disconnect on success" IsChecked="{Binding DisconnectOnSuccess.Value}"/>
+                    </Grid>
+                </TabItem>
+            
+                <!-- Version Info Tab -->
+                <TabItem Header="Version">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Row="0" Grid.Column="0">
+                            <Run FontSize="18">TPI Programmer</Run>
+                            <Run>Version</Run>
+                            <Run Text="{Binding VersionMajor, Mode=OneWay}"/>
+                            <Run Text="."/>
+                            <Run Text="{Binding VersionMinor, Mode=OneWay}"/>
+                            <Run Text="."/>
+                            <Run Text="{Binding VersionRevision, Mode=OneWay}"/>
+                        </TextBlock>
+                        <Separator Grid.Row="1"/>
+                        <TextBlock Grid.Row="2">
+                            <Run>With</Run>
+                            <Hyperlink Command="{Binding OpenUriCommand}" CommandParameter="http://rx.codeplex.com/">Reactive Extensions</Hyperlink>
+                            <Run>,</Run>
+                            <Hyperlink Command="{Binding OpenUriCommand}" CommandParameter="https://reactiveproperty.codeplex.com/">ReactiveProperty</Hyperlink>
+                            <Run>,</Run>
+                            <Hyperlink Command="{Binding OpenUriCommand}" CommandParameter="http://ugaya40.hateblo.jp/entry/livet">Livet</Hyperlink>
+                            <Run>,</Run>
+                            <Hyperlink Command="{Binding OpenUriCommand}" CommandParameter="https://www.nuget.org/packages/MetroRadiance/">MetroRadiance</Hyperlink>
+                            <Run>,</Run>
+                            <Hyperlink Command="{Binding OpenUriCommand}" CommandParameter="http://www.intra2net.com/en/developer/libftdi/">libftdi</Hyperlink>
+                            <Run>,</Run>
+                            <Hyperlink Command="{Binding OpenUriCommand}" CommandParameter="http://libusb.info/">libusb</Hyperlink>
+                        </TextBlock>
+                        <Separator Grid.Row="3"/>
+                        <TextBlock Grid.Row="4">
+                            <Run>Source:</Run>
+                            <Hyperlink Command="{Binding OpenUriCommand}" CommandParameter="https://github.com/ciniml/TpiProgrammer">https://github.com/ciniml/TpiProgrammer</Hyperlink>
+                            <LineBreak/>
+                            <Run>Copyright(C) Kenta IDA 2015</Run><LineBreak/>
+                            <Run>This software is licensed under the MIT license.</Run>
+                        </TextBlock>
+                    </Grid>
+                </TabItem>
+            </TabControl>
+            
+            <!-- Status Bar -->
+            <StatusBar Grid.Row="2">
                 <StatusBarItem>
-                    <Label>
-                        <Label.Style>
-                            <Style TargetType="{x:Type Label}">
-                                <Setter Property="Content" Value=""/>
+                    <TextBlock>
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}">
+                                <Setter Property="Text" Value=""/>
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding ProgrammerOperation.Value}" Value="Erasing">
-                                        <Setter Property="Content" Value="Erasing the device..."/>
+                                        <Setter Property="Text" Value="Erasing the device..."/>
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding ProgrammerOperation.Value}" Value="CheckingBlank">
-                                        <Setter Property="Content" Value="Checking the device is blank..."/>
+                                        <Setter Property="Text" Value="Checking the device is blank..."/>
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding ProgrammerOperation.Value}" Value="Programming">
-                                        <Setter Property="Content" Value="Programming..."/>
+                                        <Setter Property="Text" Value="Programming..."/>
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding ProgrammerOperation.Value}" Value="Verifying">
-                                        <Setter Property="Content" Value="Verifying..."/>
+                                        <Setter Property="Text" Value="Verifying..."/>
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
-                        </Label.Style>
-                    </Label>
+                        </TextBlock.Style>
+                    </TextBlock>
                 </StatusBarItem>
                 <StatusBarItem>
-                    <Label>
-                        <Label.Style>
-                            <Style TargetType="{x:Type Label}">
+                    <TextBlock>
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}">
                                 <Setter Property="Visibility" Value="Visible"/>
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding ProgrammerOperation.Value}" Value="None">
@@ -223,9 +284,9 @@
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
-                        </Label.Style>
+                        </TextBlock.Style>
                         <TextBlock Text="{Binding Path=ProgrammingProgress.Value, StringFormat=P1}"/>
-                    </Label>
+                    </TextBlock>
                 </StatusBarItem>
             </StatusBar>
         </Grid>

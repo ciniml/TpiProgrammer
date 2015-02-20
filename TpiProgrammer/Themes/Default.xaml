@@ -23,4 +23,20 @@
     
     <Color x:Key="BusyWindowBorderColorKey">DeepPink</Color>
     <SolidColorBrush x:Key="BusyWindowBorderColorBrushKey" Color="{StaticResource BusyWindowBorderColorKey}"/>
+    
+    <Style TargetType="{x:Type TextBox}">
+        <Setter Property="Margin" Value="4,3"/>
+        <Setter Property="Height" Value="24"/>
+    </Style>
+    <Style TargetType="{x:Type TextBlock}">
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Margin" Value="2,2,4,2"/>
+    </Style>
+    <Style TargetType="{x:Type Button}">
+        <Setter Property="Margin" Value="8,2"/>
+        <Setter Property="Padding" Value="4,2"/>
+    </Style>
+    <Style TargetType="{x:Type ComboBox}">
+        <Setter Property="Margin" Value="4,2"/>
+    </Style>
 </ResourceDictionary>

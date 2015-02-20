@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
+using System.Reflection;
+using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -14,12 +17,14 @@ using Codeplex.Reactive.Notifiers;
 using Livet.Messaging.IO;
 using TpiProgrammer.Model;
 using TpiProgrammer.Model.Devices;
+using TpiProgrammer.View;
 
 namespace TpiProgrammer.ViewModel
 {
     public class MainWindowViewModel : Livet.ViewModel
     {
-        
+        public static readonly string ErrorOccuredMessageKey = nameof(ErrorOccuredMessageKey);
+
         public ReadOnlyObservableCollection<TpiCommunication> ProgrammingDevices => TpiCommunication.Devices;
         public ReactiveProperty<TpiCommunication> SelectedProgrammingDevice { get; private set; }
 
@@ -43,10 +48,21 @@ namespace TpiProgrammer.ViewModel
         public ReactiveProperty<float> ProgrammingProgress { get; private set; }
         public ReactiveProperty<ProgrammerOperation> ProgrammerOperation { get; private set; }
 
+        public int VersionMajor => Assembly.GetEntryAssembly().GetName().Version.Major;
+        public int VersionMinor => Assembly.GetEntryAssembly().GetName().Version.Minor;
+        public int VersionRevision=> Assembly.GetEntryAssembly().GetName().Version.Revision;
+
+        public ReactiveCommand<string> OpenUriCommand { get; private set; }
+
+        private void RaiseError(Exception e)
+        {
+            this.Messenger.Raise(new MessageBoxMessage(ErrorOccuredMessageKey, MessageBoxButton.OK, e));
+        }
+
         public MainWindowViewModel()
         {
             TpiCommunication.UpdateDevices();
-
+ 
             var operationCounter = new CountNotifier();
             var programmingProgress = new ScheduledNotifier<ProgrammingProgressInfo>();
 
@@ -60,14 +76,20 @@ namespace TpiProgrammer.ViewModel
                 Observable.CombineLatest(operationCounter, this.SelectedProgrammingDevice,
                     (counter, device) => counter == CountChangedStatus.Empty && device != null)
                     .ToReactiveCommand();
-            this.OpenSelectedProgrammerCommand.Subscribe(_ =>
+            this.OpenSelectedProgrammerCommand.Select(_ =>
             {
                 var communication = this.SelectedProgrammingDevice.Value;
                 communication.Open();
+                this.CurrentProgrammer.Value?.Dispose();
                 this.CurrentProgrammer.Value = new Programmer(communication, ((App)Application.Current).DeviceInformations.Value);
-            }).AddTo(this.CompositeDisposable);
+                return Unit.Default;
+            })
+            .OnErrorRetry((Exception e) => { this.RaiseError(e); })
+            .Subscribe().AddTo(this.CompositeDisposable);
 
             this.CurrentProgrammer = new ReactiveProperty<Programmer>();
+            this.CurrentProgrammer.AddTo(this.CompositeDisposable);
+
             this.TargetDevice = this.CurrentProgrammer
                 .Where(programmer => programmer != null)
                 .Select(programmer => programmer.ObserveProperty(self => self.ConnectedDevice))
@@ -94,7 +116,7 @@ namespace TpiProgrammer.ViewModel
                             .Finally(() => operationCounter.Decrement());
                     }
                 })
-                .OnErrorRetry((Exception e) => { })
+                .OnErrorRetry((Exception e) => { this.RaiseError(e); })
                 .Subscribe()
                 .AddTo(this.CompositeDisposable);
             programmerIsOpened.Connect();
@@ -139,9 +161,18 @@ namespace TpiProgrammer.ViewModel
                     return Observable.FromAsync(cancellationToken => programmer.ProgramAsync(fileToProgram, disconnectOnSuccess, programmingProgress, cancellationToken))
                         .Finally(() => operationCounter.Decrement());
                 })
-                .OnErrorRetry((Exception e) => { })
+                .OnErrorRetry((Exception e) => { this.RaiseError(e); })
                 .Subscribe()
                 .AddTo(this.CompositeDisposable);
+
+            this.OpenUriCommand = new ReactiveCommand<string>();
+            this.OpenUriCommand
+                .Select(uri => {
+                    Process.Start(uri);
+                    return Unit.Default;
+                })
+                .OnErrorRetry((Exception e) => this.RaiseError(e))
+                .Subscribe().AddTo(this.CompositeDisposable);
 
             operationCounter.Increment();
             operationCounter.Decrement();

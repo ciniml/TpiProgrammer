@@ -59,7 +59,6 @@ namespace TpiProgrammer.Model
         public static ReadOnlyObservableCollection<TpiCommunication> Devices { get; private set; }
         
         private static Dictionary<FtdiDevice, TpiCommunication> tpiDevices = new Dictionary<FtdiDevice, TpiCommunication>();
-        private static readonly Ftdi enumerationContext;
 
         private bool isConnected;
 
@@ -68,23 +67,26 @@ namespace TpiProgrammer.Model
         {
             lock (tpiDevices)
             {
-                var currentDevices = enumerationContext.GetDevices();
-                var previousDevices = tpiDevices.Keys;
-                var unchangedDevices = previousDevices.Intersect(currentDevices).ToArray();
-                var addedDevices = currentDevices.Except(unchangedDevices).ToList();
-                var removedDevices = previousDevices.Except(unchangedDevices).ToList();
+                using (var ftdi = new Ftdi())
+                {
+                    var currentDevices = ftdi.GetDevices();
+                    var previousDevices = tpiDevices.Keys;
+                    var unchangedDevices = previousDevices.Intersect(currentDevices).ToArray();
+                    var addedDevices = currentDevices.Except(unchangedDevices).ToList();
+                    var removedDevices = previousDevices.Except(unchangedDevices).ToList();
 
-                foreach (var removedDevice in removedDevices)
-                {
-                    var device = tpiDevices[removedDevice];
-                    tpiDevices.Remove(removedDevice);
-                    observableDevices.Remove(device);
-                }
-                foreach (var addedDevice in addedDevices)
-                {
-                    var device = new TpiCommunication(addedDevice);
-                    observableDevices.Add(device);
-                    tpiDevices.Add(addedDevice, device);
+                    foreach (var removedDevice in removedDevices)
+                    {
+                        var device = tpiDevices[removedDevice];
+                        tpiDevices.Remove(removedDevice);
+                        observableDevices.Remove(device);
+                    }
+                    foreach (var addedDevice in addedDevices)
+                    {
+                        var device = new TpiCommunication(addedDevice);
+                        observableDevices.Add(device);
+                        tpiDevices.Add(addedDevice, device);
+                    }
                 }
             }
         }
@@ -92,7 +94,6 @@ namespace TpiProgrammer.Model
         static TpiCommunication() 
         {
             Devices = new ReadOnlyObservableCollection<TpiCommunication>(observableDevices);
-            enumerationContext = new Ftdi();
             UpdateDevices();
         }
 
@@ -713,7 +714,7 @@ private class TpiCommandSequence
         }
         public void Close()
         {
-            this.ftdi.Close();
+            this.ftdi.Dispose();
             this.ftdi = null;
         }
 
