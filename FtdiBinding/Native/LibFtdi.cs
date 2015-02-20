@@ -5,7 +5,9 @@ using System.Text;
 
 namespace FtdiBinding.Native
 {
-
+    /// <summary>
+    /// P/Invoke definitions of libftdi.
+    /// </summary>
     public static class LibFtdi
     {
         private const string LibFtdiFileName = @"libftdi1.dll";

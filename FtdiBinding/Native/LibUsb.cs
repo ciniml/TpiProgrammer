@@ -7,10 +7,16 @@ using System.Threading.Tasks;
 
 namespace FtdiBinding.Native
 {
+    /// <summary>
+    /// P/Invoke definitions of libusb.
+    /// </summary>
     public static class LibUsb
     {
         private const string LibUsbFileName = @"libusb-1.0.dll";
 
+        /// <summary>
+        /// USB device descriptor
+        /// </summary>
         [StructLayout(LayoutKind.Sequential)]
         public struct libusb_device_descriptor
         {
@@ -33,7 +39,13 @@ namespace FtdiBinding.Native
         [Flags]
         public enum libusb_hotplug_event
         {
+            /// <summary>
+            /// A device has been attached.
+            /// </summary>
             LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED = 0x01,
+            /// <summary>
+            /// A device has been detached.
+            /// </summary>
             LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT = 0x02,
         }
 
@@ -45,6 +57,9 @@ namespace FtdiBinding.Native
 
         public const int LIBUSB_HOTPLUG_MATCH_ANY = -1;
 
+        /// <summary>
+        /// Ensure that libusb and its dependencies are loaded before using it.
+        /// </summary>
         private static readonly Preloader preloader = new Preloader(LibUsbFileName);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall, CharSet=CharSet.Ansi)]

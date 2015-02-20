@@ -10,9 +10,15 @@ using FtdiBinding.Native;
 
 namespace FtdiBinding
 {
+    /// <summary>
+    /// An exception which is thrown when some erros are occured in libftdi.
+    /// </summary>
     [Serializable]
     public class FtdiException : Exception
     {
+        /// <summary>
+        /// Gets libftdi error code
+        /// </summary>
         public int ErrorCode { get; private set; }
         //
         // For guidelines regarding the creation of new exception types, see
@@ -33,15 +39,36 @@ namespace FtdiBinding
         }
     }
 
+    /// <summary>
+    /// Represents a USB device which can use with libftdi.
+    /// </summary>
     public class FtdiDevice
     {
         private LibUsb.libusb_device_descriptor descriptor;
+        /// <summary>
+        /// Gets this device's manufacturer string.
+        /// </summary>
         public string Manufacturer { get; private set; }
+        /// <summary>
+        /// Gets this device's description string.
+        /// </summary>
         public string Description { get; private set; }
+        /// <summary>
+        /// Gets this device's serial string.
+        /// </summary>
         public string Serial { get; private set; }
 
+        /// <summary>
+        /// Gets idVendor field of the device descriptor.
+        /// </summary>
         public int VendorId => (int) this.descriptor.idVendor;
+        /// <summary>
+        /// Gets idProduct field of the device descriptor.
+        /// </summary>
         public int ProductId => (int)this.descriptor.idProduct;
+        /// <summary>
+        /// Gets bcdDevice field of the device descriptor.
+        /// </summary>
         public int BcdDevice => (int) this.descriptor.bcdDevice;
 
         public override bool Equals(object obj)
@@ -90,6 +117,9 @@ namespace FtdiBinding
         }
     }
 
+    /// <summary>
+    /// Manages FTDI devices.
+    /// </summary>
     public class Ftdi : IDisposable
     {
         private LibFtdi.FtdiContext context;
@@ -112,6 +142,9 @@ namespace FtdiBinding
 
         public event EventHandler DeviceDetached;
 
+        /// <summary>
+        /// Register to receive hotplug notifications of the current device.
+        /// </summary>
         private void RegisterHotPlugNotification()
         {
             this.hotplugCallback = (ctx, device, evt, data) =>
@@ -127,12 +160,15 @@ namespace FtdiBinding
             this.usbDeviceContext = LibUsb.libusb_get_device(this.context.UsbDeviceHandle);
             var result = LibUsb.libusb_hotplug_register_callback(
                 usbContext,
-                LibUsb.libusb_hotplug_event.LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT,
+                LibUsb.libusb_hotplug_event.LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT,   // Receive detach event only.
                 LibUsb.libusb_hotplug_flag.LIBUSB_HOTPLUG_ENUMERATE,
                 LibUsb.LIBUSB_HOTPLUG_MATCH_ANY, LibUsb.LIBUSB_HOTPLUG_MATCH_ANY, LibUsb.LIBUSB_HOTPLUG_MATCH_ANY,
                 this.hotplugCallback, IntPtr.Zero, out this.hotPlugNotificationHandle);
         }
 
+        /// <summary>
+        /// Unregister to receive hotplug notification.
+        /// </summary>
         private void UnregisterHotPlugNotification()
         {
             if (this.hotPlugNotificationHandle != IntPtr.Zero)
@@ -144,6 +180,10 @@ namespace FtdiBinding
             }
         }
 
+        /// <summary>
+        /// Enumerates currently attached devices and returns a list of them.
+        /// </summary>
+        /// <returns></returns>
         public IReadOnlyList<FtdiDevice> GetDevices()
         {
             const int stringBufferSize = 1024;
@@ -151,15 +191,20 @@ namespace FtdiBinding
 
             IntPtr deviceListHandle;
             CheckResult(LibFtdi.ftdi_usb_find_all(this.context, out deviceListHandle, 0, 0));
+            // Handle of the device list libftdi returns is a pointer to head node of device list.
+            // We need to save this handle to release the device list after enumeration completes.
             var deviceListPtr = deviceListHandle;
             try
             {
                 while (deviceListPtr != IntPtr.Zero)
                 {
+                    // Gets the current node.
                     var deviceList = (LibFtdi.FtdiDeviceList) Marshal.PtrToStructure(deviceListPtr, typeof (LibFtdi.FtdiDeviceList));
 
                     var descriptor = new LibUsb.libusb_device_descriptor();
                     LibUsb.libusb_get_device_descriptor(deviceList.Device, out descriptor);
+
+                    // Reads the string descriptors if exist.
                     var manufacturerBuffer = new StringBuilder(stringBufferSize);
                     var productBuffer = new StringBuilder(stringBufferSize);
                     var serialBuffer = new StringBuilder(stringBufferSize);
@@ -167,13 +212,13 @@ namespace FtdiBinding
                         manufacturerBuffer, stringBufferSize, 
                         productBuffer, stringBufferSize, 
                         serialBuffer, stringBufferSize);
-
                     if (result != LibFtdi.FtdiError.UnableToOpenDevice &&
                         result != LibFtdi.FtdiError.LibUsbGetDeviceDescriptorFailed)
                     {
                         var manufacturer = result == LibFtdi.FtdiError.GetProductManufacturerFailed ? null : manufacturerBuffer.ToString();
                         var product = result == LibFtdi.FtdiError.GetProductDescriptionFailed ? null : productBuffer.ToString();
                         var serial = result == LibFtdi.FtdiError.GetSerialNumberFailed ? null : serialBuffer.ToString();
+                        // Add a device to the list.
                         devices.Add(new FtdiDevice(manufacturer, product, serial, descriptor));
                     }
                     deviceListPtr = deviceList.Next;
@@ -185,10 +230,26 @@ namespace FtdiBinding
                 LibFtdi.ftdi_list_free2(deviceListHandle);
             }
         }
+
+        /// <summary>
+        /// Open the specified device.
+        /// </summary>
+        /// <param name="device"></param>
         public void Open(FtdiDevice device)
         {
             this.Open(device.VendorId, device.ProductId, device.Description, device.Serial, 0);
         }
+
+        /// <summary>
+        /// Open a device identified by values of its device desciptor fields.
+        /// </summary>
+        /// <param name="vendor">idVendor field</param>
+        /// <param name="product">idProduct field</param>
+        /// <param name="description">Product description string descriptor</param>
+        /// <param name="serial">Serial number string descriptor</param>
+        /// <param name="index">
+        /// An index to select a device when devices which has the same USB descriptor are attached.
+        /// </param>
         public void Open(int vendor, int product, string description, string serial, int index)
         {
             if( this.isOpened ) throw new InvalidOperationException("Device is already opened.");
@@ -198,6 +259,9 @@ namespace FtdiBinding
             this.isOpened = true;
         }
 
+        /// <summary>
+        /// Close the device currently opened.
+        /// </summary>
         public void Close()
         {
             if( !this.isOpened ) throw new InvalidOperationException("Device is not opened.");
@@ -209,31 +273,55 @@ namespace FtdiBinding
         public Ftdi()
         {
             this.context = LibFtdi.ftdi_new();
-            CheckResult(LibFtdi.ftdi_init(this.context));
+            if (this.context.IsInvalid)
+            {
+                throw new FtdiException(0);
+            }
             this.isInitialized = true;
         }
         
+        /// <summary>
+        /// Purge contents of the receive buffer.
+        /// </summary>
         public void PurgeReceiveBuffer()
         {
             CheckResult(LibFtdi.ftdi_usb_purge_rx_buffer(this.context));
         }
-
+        /// <summary>
+        /// Purge contents of the transmit buffer.
+        /// </summary>
         public void PurgeTransmitBuffer()
         {
             CheckResult(LibFtdi.ftdi_usb_purge_tx_buffer(this.context));
         }
-
+        /// <summary>
+        /// Purge both the receive buffer and the transmit buffer.
+        /// </summary>
         public void PurgeBothBuffers()
         {
             CheckResult(LibFtdi.ftdi_usb_purge_buffers(this.context));
         }
 
+        /// <summary>
+        /// Write data to the device.
+        /// </summary>
+        /// <param name="data">An byte array which contains data to write.</param>
+        /// <param name="size">Number of bytes to write</param>
+        /// <returns>Number of bytes actually written to the device.</returns>
         public int Write(byte[] data, int size)
         {
             return CheckResult(LibFtdi.ftdi_write_data(this.context, data, size));
         }
+        /// <summary>
+        /// Write data to the device.
+        /// </summary>
+        /// <param name="data">An byte array which contains data to write.</param>
+        /// <param name="offset"></param>
+        /// <param name="size">Number of bytes to write</param>
+        /// <returns>Number of bytes actually written to the device.</returns>
         public int Write(byte[] data, int offset, int size)
         {
+            // Pins the array and get its address.
             var handle = GCHandle.Alloc(data, GCHandleType.Pinned);
             try
             {
@@ -247,6 +335,12 @@ namespace FtdiBinding
             }
         }
 
+        /// <summary>
+        /// Write data to the device asynchronously.
+        /// </summary>
+        /// <param name="data">An byte array which contains data to write.</param>
+        /// <param name="size">Number of bytes to write</param>
+        /// <returns>Number of bytes actually written to the device.</returns>
         public async Task<int> WriteAsync(byte[] data, int size)
         {
             var transfer = LibFtdi.ftdi_write_data_submit(this.context, data, size);
@@ -276,6 +370,13 @@ namespace FtdiBinding
                 handle.Free();
             }
         }
+
+        /// <summary>
+        /// Read data from the device asynchronously.
+        /// </summary>
+        /// <param name="data">An byte array to store data read from the device</param>
+        /// <param name="size">Number of bytes to read</param>
+        /// <returns>Number of bytes actually read to the device.</returns>
         public async Task<int> ReadAsync(byte[] data, int size)
         {
             var transfer = LibFtdi.ftdi_read_data_submit(this.context, data, size);
@@ -286,11 +387,19 @@ namespace FtdiBinding
             var result = await this.WaitTransfer(transfer);
             return CheckResult(result);
         }
+        /// <summary>
+        /// Waits until the asynchronous transfer completes.
+        /// </summary>
+        /// <param name="transfer">Handle of the asynchronous transfer to wait.</param>
+        /// <returns></returns>
         private Task<int> WaitTransfer(IntPtr transfer)
         {
             return Task.Run(() => LibFtdi.ftdi_transfer_data_done(transfer));
         }
 
+        /// <summary>
+        /// Gets or sets the chunk size when reading data from the device.
+        /// </summary>
         public uint ReadChunkSize
         {
             get
@@ -301,6 +410,9 @@ namespace FtdiBinding
             }
             set { LibFtdi.ftdi_read_data_set_chunksize(this.context, value); }
         }
+        /// <summary>
+        /// Gets or sets the chunk size when writing data to the device.
+        /// </summary>
         public uint WriteChunkSize
         {
             get
@@ -312,16 +424,28 @@ namespace FtdiBinding
             set { LibFtdi.ftdi_write_data_set_chunksize(this.context, value); }
         }
 
+        /// <summary>
+        /// Sets bit mode of the device.
+        /// </summary>
+        /// <param name="bitMask">I/O direction of the port.</param>
+        /// <param name="mode">bit mode. See <see cref="FtdiMpsseMode"/></param>
         public void SetBitMode(byte bitMask, FtdiMpsseMode mode)
         {
             CheckResult(LibFtdi.ftdi_set_bitmode(this.context, bitMask, mode));
         }
 
+        /// <summary>
+        /// Disables bit bang mode.
+        /// </summary>
         public void DisableBitBang()
         {
             CheckResult(LibFtdi.ftdi_disable_bitbang(this.context));
         }
 
+        /// <summary>
+        /// Reads current pin values.
+        /// </summary>
+        /// <returns></returns>
         public byte ReadPins()
         {
             byte pins;
@@ -329,6 +453,9 @@ namespace FtdiBinding
             return pins;
         }
 
+        /// <summary>
+        /// Gets or sets latency timer.
+        /// </summary>
         public byte LatencyTimer
         {
             get
@@ -340,6 +467,10 @@ namespace FtdiBinding
             set { LibFtdi.ftdi_set_latency_timer(this.context, value); }
         }
 
+        /// <summary>
+        /// Dispose this object.
+        /// </summary>
+        /// <param name="disposing"></param>
         private void Dispose(bool disposing)
         {
             if (this.context != null)
@@ -373,15 +504,36 @@ namespace FtdiBinding
         }
     }
 
+    /// <summary>
+    /// FTDI chip type
+    /// </summary>
     public enum FtdiChipType
     {
         TypeAM,
         TypeBM,
+        /// <summary>
+        /// FT2232C
+        /// </summary>
         Type2232C,
+        /// <summary>
+        /// FT232R
+        /// </summary>
         TypeR,
+        /// <summary>
+        /// FT2232H
+        /// </summary>
         Type2232H,
+        /// <summary>
+        /// FT4232H
+        /// </summary>
         Type4232H,
+        /// <summary>
+        /// FT232H
+        /// </summary>
         Type232H,
+        /// <summary>
+        /// FT230X
+        /// </summary>
         Type230X,
     }
 
@@ -391,6 +543,9 @@ namespace FtdiBinding
         DontDetachSioModule,
     }
 
+    /// <summary>
+    /// MPSSE mode
+    /// </summary>
     public enum FtdiMpsseMode : byte
     {
         Reset = 0x00,
@@ -404,12 +559,30 @@ namespace FtdiBinding
         Ft1284 = 0x80,
     }
 
+    /// <summary>
+    /// Device interface
+    /// </summary>
     public enum FtdiInterface
     {
+        /// <summary>
+        /// Any interface available.
+        /// </summary>
         Any,
+        /// <summary>
+        /// Interface A
+        /// </summary>
         A,
+        /// <summary>
+        /// Interface B
+        /// </summary>
         B,
+        /// <summary>
+        /// Interface C
+        /// </summary>
         C,
+        /// <summary>
+        /// Interface D
+        /// </summary>
         D,
     }
 
