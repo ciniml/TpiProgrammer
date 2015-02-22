@@ -1,0 +1,164 @@
+EESchema Schematic File Version 2
+LIBS:power
+LIBS:device
+LIBS:transistors
+LIBS:conn
+LIBS:linear
+LIBS:regul
+LIBS:74xx
+LIBS:cmos4000
+LIBS:adc-dac
+LIBS:memory
+LIBS:xilinx
+LIBS:special
+LIBS:microcontrollers
+LIBS:dsp
+LIBS:microchip
+LIBS:analog_switches
+LIBS:motorola
+LIBS:texas
+LIBS:intel
+LIBS:audio
+LIBS:interface
+LIBS:digital-audio
+LIBS:philips
+LIBS:display
+LIBS:cypress
+LIBS:siliconi
+LIBS:opto
+LIBS:atmel
+LIBS:contrib
+LIBS:valves
+LIBS:TpiProgrammer
+EELAYER 25 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 1 1
+Title "TPI Programmer"
+Date ""
+Rev ""
+Comp "Kenta IDA"
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+$Comp
+L AE-FT232H-TPI U1
+U 1 1 54E8D07D
+P 4250 4350
+F 0 "U1" H 3900 4400 60  0000 C CNN
+F 1 "AE-FT232HL" H 3700 4300 60  0000 C CNN
+F 2 "" H 4250 4350 60  0000 C CNN
+F 3 "" H 4250 4350 60  0000 C CNN
+	1    4250 4350
+	-1   0    0    -1  
+$EndComp
+$Comp
+L R R1
+U 1 1 54E8D291
+P 5000 3800
+F 0 "R1" V 5080 3800 40  0000 C CNN
+F 1 "470" V 5007 3801 40  0000 C CNN
+F 2 "" V 4930 3800 30  0000 C CNN
+F 3 "" H 5000 3800 30  0000 C CNN
+	1    5000 3800
+	0    1    1    0   
+$EndComp
+$Comp
+L GND #PWR01
+U 1 1 54E8D8AF
+P 4250 4550
+F 0 "#PWR01" H 4250 4550 30  0001 C CNN
+F 1 "GND" H 4250 4480 30  0001 C CNN
+F 2 "" H 4250 4550 60  0000 C CNN
+F 3 "" H 4250 4550 60  0000 C CNN
+	1    4250 4550
+	1    0    0    -1  
+$EndComp
+$Comp
+L +5V #PWR02
+U 1 1 54E8D8D4
+P 4350 3250
+F 0 "#PWR02" H 4350 3340 20  0001 C CNN
+F 1 "+5V" H 4350 3340 30  0000 C CNN
+F 2 "" H 4350 3250 60  0000 C CNN
+F 3 "" H 4350 3250 60  0000 C CNN
+	1    4350 3250
+	1    0    0    -1  
+$EndComp
+$Comp
+L ATTINY10-TS IC1
+U 1 1 54E8DA5D
+P 6800 3850
+F 0 "IC1" H 5800 4250 40  0000 C CNN
+F 1 "ATTINY10-TS" H 7650 3450 40  0000 C CNN
+F 2 "SOT23-6" H 6800 4100 35  0000 C CIN
+F 3 "" H 6800 3850 60  0000 C CNN
+	1    6800 3850
+	1    0    0    -1  
+$EndComp
+NoConn ~ 4150 3250
+NoConn ~ 5600 3900
+$Comp
+L C C1
+U 1 1 54E8E0AD
+P 8000 3850
+F 0 "C1" H 8000 3950 40  0000 L CNN
+F 1 "100n" H 8006 3765 40  0000 L CNN
+F 2 "" H 8038 3700 30  0000 C CNN
+F 3 "" H 8000 3850 60  0000 C CNN
+	1    8000 3850
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	4700 3800 4750 3800
+Wire Wire Line
+	4700 4000 5600 4000
+Wire Wire Line
+	4700 3900 5250 3900
+Wire Wire Line
+	5250 3900 5250 3800
+Connection ~ 5250 3800
+Wire Wire Line
+	8000 3500 8000 3650
+Wire Wire Line
+	8000 3600 8000 3600
+Wire Wire Line
+	8000 4050 8000 4200
+Wire Wire Line
+	8000 4100 8000 4100
+$Comp
+L GND #PWR03
+U 1 1 54E8E279
+P 8000 4200
+F 0 "#PWR03" H 8000 4200 30  0001 C CNN
+F 1 "GND" H 8000 4130 30  0001 C CNN
+F 2 "" H 8000 4200 60  0000 C CNN
+F 3 "" H 8000 4200 60  0000 C CNN
+	1    8000 4200
+	1    0    0    -1  
+$EndComp
+Connection ~ 8000 4100
+$Comp
+L +5V #PWR04
+U 1 1 54E8E2B1
+P 8000 3500
+F 0 "#PWR04" H 8000 3590 20  0001 C CNN
+F 1 "+5V" H 8000 3590 30  0000 C CNN
+F 2 "" H 8000 3500 60  0000 C CNN
+F 3 "" H 8000 3500 60  0000 C CNN
+	1    8000 3500
+	1    0    0    -1  
+$EndComp
+Connection ~ 8000 3600
+Wire Wire Line
+	4700 3700 5300 3700
+Wire Wire Line
+	5300 3700 5600 3800
+Wire Wire Line
+	5250 3800 5300 3800
+Wire Wire Line
+	5300 3800 5600 3700
+$EndSCHEMATC
