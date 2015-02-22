@@ -108,7 +108,7 @@ namespace TpiProgrammer.Model
         private TpiCommunication(FtdiDevice device)
         {
             this.device = device;
-            this.IsConnected = true;
+            this.IsConnected = false;
         }
 
         public bool IsConnected
@@ -615,23 +615,19 @@ private class TpiCommandSequence
                 buffer[offset + i] = await this.LoadDataIndirectAsync(true);
             }
         }
-
+        
         public async Task<DeviceSignature> ConnectToDeviceAsync()
         {
-            // Set clock rate to 1[MHz]
+            // Set clock rate to 1[MHz] and initialize direction of data bit pins.
             {
                 var command = new MpsseCommand();
                 command.SetClockDivisor(4); // 12 / ((1 + 4) * 2) = 1.2[MHz]
-                await this.ExecuteCommandAsync(command);
-            }
-            // First, assert #RESET pin to reset the device
-            {
-                // Deassert #RESET and wait 100[ms] 
-                var command = new MpsseCommand();
-                command.SetGpio(0x10, 0x1b, false);
+                command.SetGpio(0x00, 0x0b, false);
+                command.SetGpio(0x00, 0x00, true);
                 await this.ExecuteCommandAsync(command);
                 await Task.Delay(100);
             }
+            // First, assert #RESET pin to reset the device
             {
                 // Assert #RESET and wait 100[ms]
                 var command = new MpsseCommand();
