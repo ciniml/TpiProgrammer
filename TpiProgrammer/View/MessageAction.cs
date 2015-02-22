@@ -50,9 +50,12 @@ namespace TpiProgrammer.View
 
         protected override void InvokeAction(InteractionMessage message)
         {
-            var targetMessage = (MessageBoxMessage)message;
-            var formattedMessage = String.Format(this.Message, targetMessage.Parameters);
-            targetMessage.Response = MessageBox.Show(this.Owner, formattedMessage, this.Caption, targetMessage.Button, this.Icon);
+            var targetMessage = message as MessageBoxMessage;
+            if( targetMessage != null)
+            { 
+                var formattedMessage = String.Format(this.Message, targetMessage.Parameters);
+                targetMessage.Response = MessageBox.Show(this.Owner, formattedMessage, this.Caption, targetMessage.Button, this.Icon);
+            }
         }
     }
 
@@ -61,6 +64,11 @@ namespace TpiProgrammer.View
         public MessageBoxButton Button { get; private set; }
         public object[] Parameters { get; private set; }
         public MessageBoxResult Response { get; set; }
+
+        protected override Freezable CreateInstanceCore()
+        {
+            return new MessageBoxMessage(this.MessageKey, this.Button, this.Parameters);
+        }
 
         public MessageBoxMessage(string messageKey, MessageBoxButton button, params object[] parameters) : base(messageKey)
         {

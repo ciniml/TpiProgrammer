@@ -56,7 +56,7 @@ namespace TpiProgrammer.ViewModel
 
         private void RaiseError(Exception e)
         {
-            this.Messenger.Raise(new MessageBoxMessage(ErrorOccuredMessageKey, MessageBoxButton.OK, e));
+            this.Messenger.Raise(new MessageBoxMessage(ErrorOccuredMessageKey, MessageBoxButton.OK, e.Message));
         }
 
         public MainWindowViewModel()
