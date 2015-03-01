@@ -17,7 +17,7 @@ namespace FtdiBinding.Native
         [DllImport("kernel32",SetLastError = true)]
         private static extern IntPtr LoadLibraryEx(string lpLibFileName, IntPtr hFile, uint dwFlags);
 
-        public Preloader(string libraryFileName)
+        public static void Preload(string libraryFileName)
         {
             var path = (Environment.Is64BitProcess ? @"Native\x64\" : @"Native\x86\") + libraryFileName;
             if (LoadLibraryEx(path, IntPtr.Zero, LOAD_WITH_ALTERED_SEARCH_PATH) == IntPtr.Zero)

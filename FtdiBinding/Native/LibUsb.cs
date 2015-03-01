@@ -57,10 +57,10 @@ namespace FtdiBinding.Native
 
         public const int LIBUSB_HOTPLUG_MATCH_ANY = -1;
 
-        /// <summary>
-        /// Ensure that libusb and its dependencies are loaded before using it.
-        /// </summary>
-        private static readonly Preloader preloader = new Preloader(LibUsbFileName);
+        static LibUsb()
+        {
+            Preloader.Preload(LibUsbFileName);
+        }
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall, CharSet=CharSet.Ansi)]
         public delegate int libusb_hotplug_callback_fn(IntPtr ctx, IntPtr device, [MarshalAs(UnmanagedType.I4)]libusb_hotplug_event evt, IntPtr user_data);

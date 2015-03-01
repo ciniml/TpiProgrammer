@@ -69,7 +69,10 @@ namespace FtdiBinding.Native
         //    public FtdiModuleDetachMode ModuleDetachMode;
         //}
 
-        private static readonly Preloader preloader = new Preloader(LibFtdiFileName);
+        static LibFtdi()
+        {
+            Preloader.Preload(LibFtdiFileName);
+        }
 
         [DllImport(LibFtdiFileName, CharSet = CharSet.Ansi, CallingConvention = CallingConvention.Cdecl)]
         public static extern int ftdi_init(FtdiContext ftdi);
